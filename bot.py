@@ -533,20 +533,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     first_name = user.first_name or "colega"
 
-    keyboard = [
-        [InlineKeyboardButton("📄 Crear mi CV ATS Profesional (1 Clic)", callback_data="btn_start_cv")],
-        [InlineKeyboardButton("🎁 Desbloquear Pack Secreto (2 Referidos)", callback_data="btn_referrals_menu")],
-        [
-            InlineKeyboardButton("📥 Kit Maestro (PDF)", callback_data="btn_download_kit"),
-            InlineKeyboardButton("📢 Convocatorias USD", callback_data="btn_channel_link")
-        ],
-        [
-            InlineKeyboardButton("💡 Guía Entrevistas", callback_data="btn_guide_interviews"),
-            InlineKeyboardButton("❓ Auditoría ATS", callback_data="btn_why_ats")
-        ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
     welcome_text = (
         f"🏛️ **SISTEMA DE EMPLEABILIDAD REMOTA & CV ATS**\n"
         f"───────────────────────────────────\n"
@@ -554,13 +540,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         f"▸ **El 85% de los CVs son descartados** por analizadores ópticos y filtros ATS antes de que los lea una persona.\n"
         f"▸ Este bot compila tu perfil bajo **estándares Harvard** (1 columna pura, fórmulas XYZ cuantitativas y palabras clave indexables) "
         f"adaptado a convocatorias activas (Outlier AI, DataAnnotation, Remotasks, Virtual Latinos, etc.).\n\n"
-        f"⚡ **Flujo Interactivo 100% Táctil:** responde en 6 pasos rápidos con los botones de abajo y tu CV estará listo en 60 segundos."
+        f"👇 **Toca una opción del menú inferior para comenzar:**"
     )
 
     persistent_keyboard = get_main_reply_keyboard(user.id)
 
     if update.callback_query:
-        await safe_edit_text(update.callback_query, welcome_text, parse_mode='Markdown', reply_markup=reply_markup)
+        await safe_edit_text(update.callback_query, welcome_text, parse_mode='Markdown', reply_markup=None)
     else:
         if os.path.exists(WELCOME_BANNER_PATH):
             with open(WELCOME_BANNER_PATH, 'rb') as photo_file:
@@ -568,17 +554,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                     photo=photo_file,
                     caption=welcome_text,
                     parse_mode='Markdown',
-                    reply_markup=reply_markup
+                    reply_markup=persistent_keyboard
                 )
-            await update.message.reply_text(
-                "⌨️ *Menú Táctil Inferior anclado:*",
-                parse_mode='Markdown',
-                reply_markup=persistent_keyboard
-            )
         else:
-            await update.message.reply_text(welcome_text, parse_mode='Markdown', reply_markup=reply_markup)
             await update.message.reply_text(
-                "⌨️ *Menú Táctil Inferior anclado:*",
+                welcome_text,
                 parse_mode='Markdown',
                 reply_markup=persistent_keyboard
             )
@@ -637,12 +617,7 @@ async def why_ats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     keyboard = [
-        [InlineKeyboardButton("📄 Crear mi CV ATS Profesional (1 Clic)", callback_data="btn_start_cv")],
-        [
-            InlineKeyboardButton("📥 Descargar Kit Maestro", callback_data="btn_download_kit"),
-            InlineKeyboardButton("📢 Convocatorias USD", callback_data="btn_channel_link")
-        ],
-        [InlineKeyboardButton("⬅️ Volver al Menú Principal", callback_data="btn_back_menu")]
+        [InlineKeyboardButton("📄 Crear mi CV ATS Profesional (1 Clic)", callback_data="btn_start_cv")]
     ]
     if query:
         await msg.edit_text(text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
@@ -732,12 +707,7 @@ async def guide_interviews_callback(update: Update, context: ContextTypes.DEFAUL
     )
 
     keyboard = [
-        [InlineKeyboardButton("📄 Crear mi CV ATS Profesional (1 Clic)", callback_data="btn_start_cv")],
-        [
-            InlineKeyboardButton("🎁 Pack Secreto de Admisión", callback_data="btn_referrals_menu"),
-            InlineKeyboardButton("📥 Kit Maestro (PDF)", callback_data="btn_download_kit")
-        ],
-        [InlineKeyboardButton("⬅️ Volver al Menú Principal", callback_data="btn_back_menu")]
+        [InlineKeyboardButton("📄 Crear mi CV ATS Profesional (1 Clic)", callback_data="btn_start_cv")]
     ]
 
     if query:
@@ -817,8 +787,6 @@ async def referrals_menu_callback(update: Update, context: ContextTypes.DEFAULT_
             InlineKeyboardButton("💬 Compartir en WhatsApp", url=wa_share_url)
         ])
 
-    keyboard.append([InlineKeyboardButton("📄 Crear mi CV ATS Profesional", callback_data="btn_start_cv")])
-    keyboard.append([InlineKeyboardButton("⬅️ Volver al Menú Principal", callback_data="btn_back_menu")])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     if query:
@@ -1211,15 +1179,7 @@ async def generate_and_send_final_cv(message, user, context) -> int:
         )
 
         keyboard = [
-            [InlineKeyboardButton("🎁 Pack Secreto: Respuestas & Admisión (2 Referidos)", callback_data="btn_referrals_menu")],
-            [
-                InlineKeyboardButton("📄 Crear otro CV", callback_data="btn_start_cv"),
-                InlineKeyboardButton("📥 Kit Maestro (PDF)", callback_data="btn_download_kit")
-            ],
-            [
-                InlineKeyboardButton("📢 Convocatorias USD", callback_data="btn_channel_link"),
-                InlineKeyboardButton("💡 Guía Entrevistas", callback_data="btn_guide_interviews")
-            ]
+            [InlineKeyboardButton("🎁 Desbloquear Respuestas Examen Outlier (Pack Secreto)", callback_data="btn_referrals_menu")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 

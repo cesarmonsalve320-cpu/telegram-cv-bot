@@ -112,7 +112,39 @@ WELCOME_BANNER_PATH = os.path.join(BASE_DIR, 'banner_welcome.jpg')
 PACK_SECRETO_BANNER_PATH = os.path.join(BASE_DIR, 'banner_pack_secreto.jpg')
 KIT_MAESTRO_BANNER_PATH = os.path.join(BASE_DIR, 'banner_kit_maestro.jpg')
 
+def is_admin(user_id) -> bool:
+    """Verifica si el ID de usuario corresponde al Administrador Principal."""
+    if not user_id:
+        return False
+    return str(user_id) == str(ADMIN_ID)
+
+
+def get_mini_app_url(mode=None) -> str:
+    """Retorna la URL de la Mini App con el query param de modo inyectado."""
+    if not mode:
+        return MINI_APP_URL
+    sep = '&' if '?' in MINI_APP_URL else '?'
+    return f"{MINI_APP_URL}{sep}mode={mode}"
+
+
 # Constantes de Botones del Teclado Inferior Persistente (Dock Ergonómico)
+# --- Botones Modo Formal (Comercios, Empresas, Tiendas, Oficios) ---
+BTN_FORMAL_CV = "📄 Crear Hoja de Vida Formal (Cajas)"
+BTN_FORMAL_MINI_APP = "🌐 Diseñar en Mini App"
+BTN_FORMAL_TIPS = "💡 Consejos para Entrevistas de Trabajo"
+BTN_FORMAL_FAQS = "📋 Preguntas Frecuentes y Salarios Locales"
+BTN_FORMAL_SWITCH_REMOTE = "🔄 Cambiar a Modo Remoto USD"
+
+# --- Botones Modo Remoto (Outlier, IA, ATS Harvard en USD) ---
+BTN_REMOTE_CV = "📄 Crear CV Harvard ATS en USD"
+BTN_REMOTE_BOOST = "🎯 Hack de Vacante (Boost)"
+BTN_REMOTE_KIT = "📥 Descargar Kit Maestro en PDF"
+BTN_REMOTE_CHANNEL = "📢 Convocatorias en Dólares (Canal)"
+BTN_REMOTE_GUIDE = "💡 Guía de Entrevistas y Salarios USD"
+BTN_REMOTE_SWITCH_FORMAL = "🔄 Cambiar a Modo Formal"
+
+# --- Botones Comunes y Compatibilidad Histórica ---
+BTN_BOTTOM_ADMIN = "👑 Panel de Administrador"
 BTN_BOTTOM_CV = "📄 Crear mi CV ATS"
 BTN_BOTTOM_MINI_APP = "🌐 Mini App CV"
 BTN_BOTTOM_BOOST = "🎯 Hacks de Vacante (Boost)"
@@ -122,16 +154,44 @@ BTN_BOTTOM_KIT = "📥 Kit Maestro (PDF)"
 BTN_BOTTOM_GUIDE = "💡 Guía Entrevistas"
 BTN_BOTTOM_ATS = "❓ Auditoría ATS"
 BTN_BOTTOM_ALERTS = "🔔 Alertas Vacantes"
-BTN_BOTTOM_ADMIN = "👑 Panel de Administrador"
 
-def get_main_reply_keyboard(user_id=None):
-    """Genera el teclado táctil inferior persistente adaptado a ergonomía móvil con Mini App integrada."""
+
+def get_formal_reply_keyboard(user_id=None):
+    """Genera el teclado táctil inferior persistente para Modo Formal (Comercios, Empresas, Tiendas)."""
+    formal_mini_url = get_mini_app_url('formal')
     buttons = [
-        [KeyboardButton(BTN_BOTTOM_CV), KeyboardButton(BTN_BOTTOM_MINI_APP, web_app=WebAppInfo(url=MINI_APP_URL))],
-        [KeyboardButton(BTN_BOTTOM_BOOST), KeyboardButton(BTN_BOTTOM_PACK)],
-        [KeyboardButton(BTN_BOTTOM_CHANNEL), KeyboardButton(BTN_BOTTOM_KIT)],
-        [KeyboardButton(BTN_BOTTOM_GUIDE), KeyboardButton(BTN_BOTTOM_ATS)],
-        [KeyboardButton(BTN_BOTTOM_ALERTS)]
+        [KeyboardButton(BTN_FORMAL_CV), KeyboardButton(BTN_FORMAL_MINI_APP, web_app=WebAppInfo(url=formal_mini_url))],
+        [KeyboardButton(BTN_FORMAL_TIPS), KeyboardButton(BTN_FORMAL_FAQS)],
+        [KeyboardButton(BTN_FORMAL_SWITCH_REMOTE)]
+    ]
+    if user_id and is_admin(user_id):
+        buttons.append([KeyboardButton(BTN_BOTTOM_ADMIN)])
+    return ReplyKeyboardMarkup(buttons, resize_keyboard=True, is_persistent=True)
+
+
+def get_remote_reply_keyboard(user_id=None):
+    """Genera el teclado táctil inferior persistente para Modo Remoto USD (Outlier, IA, Harvard ATS)."""
+    buttons = [
+        [KeyboardButton(BTN_REMOTE_CV), KeyboardButton(BTN_REMOTE_BOOST)],
+        [KeyboardButton(BTN_REMOTE_KIT), KeyboardButton(BTN_REMOTE_CHANNEL)],
+        [KeyboardButton(BTN_REMOTE_GUIDE), KeyboardButton(BTN_REMOTE_SWITCH_FORMAL)]
+    ]
+    if user_id and is_admin(user_id):
+        buttons.append([KeyboardButton(BTN_BOTTOM_ADMIN)])
+    return ReplyKeyboardMarkup(buttons, resize_keyboard=True, is_persistent=True)
+
+
+def get_main_reply_keyboard(user_id=None, mode=None):
+    """Genera el teclado táctil inferior persistente adaptado dinámicamente al modo activo del usuario."""
+    if not mode and user_id:
+        mode = get_user_mode(user_id)
+    if mode == 'formal':
+        return get_formal_reply_keyboard(user_id)
+    elif mode == 'remote':
+        return get_remote_reply_keyboard(user_id)
+    # Si aún no ha seleccionado modo, ofrecer acceso directo
+    buttons = [
+        [KeyboardButton("📄 Modo 1: Hoja de Vida Formal"), KeyboardButton("🚀 Modo 2: Empleos Remotos USD")]
     ]
     if user_id and is_admin(user_id):
         buttons.append([KeyboardButton(BTN_BOTTOM_ADMIN)])
@@ -277,7 +337,7 @@ def load_subscribers():
         return {}
 
 
-def save_subscriber(user, country=None, target_job=None):
+def save_subscriber(user, country=None, target_job=None, user_mode=None):
     subscribers = load_subscribers()
     uid = str(user.id)
     now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -285,30 +345,89 @@ def save_subscriber(user, country=None, target_job=None):
     if uid not in subscribers:
         subscribers[uid] = {
             'id': user.id,
-            'first_name': user.first_name or '',
-            'username': user.username or '',
+            'first_name': getattr(user, 'first_name', '') or '',
+            'username': getattr(user, 'username', '') or '',
             'created_at': now_str,
             'last_seen': now_str,
             'cvs_generated': 0,
             'country': country or 'No especificado',
-            'target_job': target_job or 'No especificado'
+            'target_job': target_job or 'No especificado',
+            'user_mode': user_mode
         }
     else:
         subscribers[uid]['last_seen'] = now_str
-        if user.first_name:
+        if getattr(user, 'first_name', None):
             subscribers[uid]['first_name'] = user.first_name
-        if user.username:
+        if getattr(user, 'username', None):
             subscribers[uid]['username'] = user.username
         if country:
             subscribers[uid]['country'] = country
         if target_job:
             subscribers[uid]['target_job'] = target_job
+        if user_mode:
+            subscribers[uid]['user_mode'] = user_mode
 
     try:
         with open(SUBSCRIBERS_FILE, 'w', encoding='utf-8') as f:
             json.dump(subscribers, f, indent=2, ensure_ascii=False)
     except Exception as e:
         logger.error(f"Error guardando suscriptor: {e}")
+
+
+def get_user_mode(user_id, context=None):
+    """Obtiene el modo configurado para el usuario ('formal' o 'remote'), o None si no ha elegido."""
+    if context and hasattr(context, 'user_data') and context.user_data:
+        m = context.user_data.get('user_mode')
+        if m in ('formal', 'remote'):
+            return m
+    subscribers = load_subscribers()
+    uid = str(user_id)
+    if uid in subscribers:
+        m = subscribers[uid].get('user_mode')
+        if m in ('formal', 'remote'):
+            if context and hasattr(context, 'user_data') and context.user_data is not None:
+                context.user_data['user_mode'] = m
+            return m
+    return None
+
+
+def set_user_mode(user, mode, context=None):
+    """Guarda persistentemente la preferencia de modo ('formal' o 'remote') en subscribers.json y user_data."""
+    if mode not in ('formal', 'remote'):
+        return
+    if context and hasattr(context, 'user_data') and context.user_data is not None:
+        context.user_data['user_mode'] = mode
+        context.user_data['cv_type'] = 'remote_ats' if mode == 'remote' else 'formal_boxed'
+
+    subscribers = load_subscribers()
+    uid = str(user.id)
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    if uid not in subscribers:
+        subscribers[uid] = {
+            'id': user.id,
+            'first_name': getattr(user, 'first_name', '') or '',
+            'username': getattr(user, 'username', '') or '',
+            'created_at': now_str,
+            'last_seen': now_str,
+            'cvs_generated': 0,
+            'country': 'No especificado',
+            'target_job': 'No especificado',
+            'user_mode': mode
+        }
+    else:
+        subscribers[uid]['user_mode'] = mode
+        subscribers[uid]['last_seen'] = now_str
+        if getattr(user, 'first_name', None):
+            subscribers[uid]['first_name'] = user.first_name
+        if getattr(user, 'username', None):
+            subscribers[uid]['username'] = user.username
+
+    try:
+        with open(SUBSCRIBERS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(subscribers, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"Error guardando user_mode: {e}")
 
 
 def increment_cv_count(user_id):
@@ -558,15 +677,15 @@ def parse_name_and_email(raw_text):
 
 
 # ========================================================
-# Menú Principal (/start) y Rutas de Usuario
+# ========================================================
+# Menú Principal (/start), Selección de Modo y Dashboards
 # ========================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Muestra el menú interactivo principal o inicia CV si viene de deep link."""
+    """Muestra el dashboard según el modo configurado del usuario o la pantalla de selección."""
     user = update.effective_user
     save_subscriber(user)
-    context.user_data.clear()
 
-    # Soporte para deep-linking: /start cv, /start boost o /start ref_USERID
+    # Soporte para deep-linking: /start cv, /start boost, /start formal, /start remote o /start ref_USERID
     if context.args:
         arg = context.args[0].lower()
         if arg.startswith('ref'):
@@ -574,49 +693,310 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         elif arg.startswith('cv'):
             msg = update.message or (update.callback_query.message if update.callback_query else None)
             if msg:
-                return await start_cv_step_1(msg, context)
+                return await start_cv_entry(update, context)
         elif arg.startswith('boost') or arg.startswith('hack'):
             return await boost_menu_callback(update, context)
+        elif arg == 'formal':
+            set_user_mode(user, 'formal', context)
+            return await show_formal_dashboard(update, context, user=user)
+        elif arg == 'remote':
+            set_user_mode(user, 'remote', context)
+            return await show_remote_dashboard(update, context, user=user)
 
-    first_name = user.first_name or "colega"
+    current_mode = get_user_mode(user.id, context)
+    context.user_data.clear()
+    if current_mode:
+        context.user_data['user_mode'] = current_mode
+        context.user_data['cv_type'] = 'remote_ats' if current_mode == 'remote' else 'formal_boxed'
 
-    welcome_text = (
-        f"🏛️ **SISTEMA DE EMPLEABILIDAD & CV ATS DE ÉLITE**\n"
+    if current_mode == 'formal':
+        return await show_formal_dashboard(update, context, user=user)
+    elif current_mode == 'remote':
+        return await show_remote_dashboard(update, context, user=user)
+    else:
+        return await show_mode_selection(update, context)
+
+
+async def show_mode_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Pantalla inicial de selección de modalidad (Formal vs Remoto en USD)."""
+    user = update.effective_user
+    first_name = user.first_name or "candidato"
+
+    selection_text = (
+        f"🏛️ **SISTEMA INTELIGENTE DE EMPLEABILIDAD & CV**\n"
         f"───────────────────────────────────\n"
-        f"Hola, **{first_name}**. Bienvenido a la plataforma de optimización laboral y contratación.\n\n"
-        f"▸ **El 85% de los CVs son descartados** por filtros ATS antes de que los lea una persona.\n"
-        f"▸ Este bot compila tu CV bajo **estándares Harvard** (1 columna, fórmulas XYZ cuantitativas y palabras clave indexables) "
-        f"o en formato **Hoja de Vida Formal** en cajas para comercios y empresas tradicionales.\n"
-        f"▸ 🎯 **Optimizador según Vacante:** Usa **/boost** o el botón '🎯 Hacks de Vacante' para obtener las palabras clave exactas y logros probados según el trabajo al que aspiras.\n\n"
-        f"👇 **Toca una opción del menú inferior para comenzar:**"
+        f"¡Hola, **{first_name}**! Para brindarte la interfaz y herramientas exactas para tu perfil, "
+        f"por favor selecciona tu **objetivo principal**:\n\n"
+        f"1️⃣ **📄 Modo 1: Hoja de Vida Formal (Trabajo Normal / Presencial)**\n"
+        f"▸ Diseñado para comercios, tiendas, almacenes, empresas locales, operarios, bodega y administración.\n"
+        f"▸ Formato sobrio y ejecutivo en cajas limpias de 1 página con alta legibilidad para reclutadores.\n"
+        f"▸ Cero términos confusos en inglés ni requisitos de trabajo remoto.\n\n"
+        f"2️⃣ **🚀 Modo 2: Empleos Remotos en Dólares (Outlier / IA / ATS)**\n"
+        f"▸ Diseñado para postulaciones internacionales en USD (Outlier AI, Asistente Virtual, DataAnnotation, etc.).\n"
+        f"▸ Formato Harvard ATS de 1 columna con palabras clave indexables y fórmulas cuantitativas XYZ.\n"
+        f"▸ Optimizador de vacantes (Boost) y Kit Maestro en PDF.\n\n"
+        f"*(Puedes alternar o cambiar de modo cuando desees con el comando /modo).* \n\n"
+        f"👇 **Toca una opción para activar tu modo de trabajo:**"
     )
 
-    persistent_keyboard = get_main_reply_keyboard(user.id)
-
-    inline_welcome = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🎯 Adaptar CV a mi Vacante (Hack de Contratación / Palabras Clave)", callback_data="btn_boost_menu")],
-        [InlineKeyboardButton("📄 Crear mi CV ATS Directo", callback_data="btn_start_cv"), InlineKeyboardButton("🌐 Abrir Mini App", web_app=WebAppInfo(url=MINI_APP_URL))]
+    inline_selection = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📄 Modo 1: Hoja de Vida Formal (Normal)", callback_data="set_mode_formal")],
+        [InlineKeyboardButton("🚀 Modo 2: Empleos Remotos en USD (ATS)", callback_data="set_mode_remote")]
     ])
 
-    if update.callback_query:
-        await safe_edit_text(update.callback_query, welcome_text, parse_mode='Markdown', reply_markup=inline_welcome)
-    else:
+    query = update.callback_query
+    if query and query.message:
+        await safe_edit_text(query, selection_text, parse_mode='Markdown', reply_markup=inline_selection)
+    elif update.message:
+        await update.message.reply_text(
+            selection_text,
+            parse_mode='Markdown',
+            reply_markup=inline_selection
+        )
+    return ConversationHandler.END
+
+
+async def show_formal_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE, user=None, is_switch=False):
+    """Muestra el panel y menú inferior adaptados 100% al Modo Formal de Trabajo Normal."""
+    if not user:
+        user = update.effective_user
+    first_name = user.first_name or "colega"
+    persistent_keyboard = get_formal_reply_keyboard(user.id)
+    formal_mini_url = get_mini_app_url('formal')
+
+    switch_header = "🔄 **Has cambiado exitosamente a Modo Formal.**\n\n" if is_switch else ""
+
+    dashboard_text = (
+        f"{switch_header}"
+        f"📄 **SISTEMA DE HOJA DE VIDA FORMAL • TRABAJO LOCAL**\n"
+        f"───────────────────────────────────\n"
+        f"Hola, **{first_name}**. Tu bot está configurado en **Modo Formal**.\n\n"
+        f"▸ **Formato Ejecutivo en Cajas:** Estructura limpia y sobria de 1 página que resalta tus datos, educación y experiencia laboral.\n"
+        f"▸ **Apto para Todo Tipo de Empleos:** Comercios, almacenes, tiendas, atención al público, logística, bodega, operarios y oficina.\n"
+        f"▸ **Educación & Historial:** Primaria, bachillerato o estudios técnicos detallados con años y estados comprobables.\n\n"
+        f"👇 **Elige una opción para empezar o usa los botones del teclado inferior:**"
+    )
+
+    inline_dashboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📄 Crear Hoja de Vida Formal (Cajas)", callback_data="btn_start_cv_formal")],
+        [InlineKeyboardButton("🌐 Diseñar en Mini App", web_app=WebAppInfo(url=formal_mini_url))],
+        [
+            InlineKeyboardButton("💡 Consejos para Entrevistas", callback_data="btn_formal_tips"),
+            InlineKeyboardButton("📋 Salarios y Preguntas Frecuentes", callback_data="btn_formal_faqs")
+        ],
+        [InlineKeyboardButton("🔄 Cambiar a Modo Remoto USD", callback_data="btn_switch_to_remote")]
+    ])
+
+    query = update.callback_query
+    if query and query.message:
+        try:
+            await safe_edit_text(query, dashboard_text, parse_mode='Markdown', reply_markup=inline_dashboard)
+        except Exception:
+            await query.message.reply_text(dashboard_text, parse_mode='Markdown', reply_markup=persistent_keyboard)
+    elif update.message:
         if os.path.exists(WELCOME_BANNER_PATH):
             with open(WELCOME_BANNER_PATH, 'rb') as photo_file:
                 await update.message.reply_photo(
                     photo=photo_file,
-                    caption=welcome_text,
+                    caption=dashboard_text,
                     parse_mode='Markdown',
                     reply_markup=persistent_keyboard
                 )
         else:
             await update.message.reply_text(
-                welcome_text,
+                dashboard_text,
                 parse_mode='Markdown',
                 reply_markup=persistent_keyboard
             )
 
     return ConversationHandler.END
+
+
+async def show_remote_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE, user=None, is_switch=False):
+    """Muestra el panel y menú inferior adaptados 100% al Modo Remoto en USD."""
+    if not user:
+        user = update.effective_user
+    first_name = user.first_name or "colega"
+    persistent_keyboard = get_remote_reply_keyboard(user.id)
+    remote_mini_url = get_mini_app_url('remote')
+
+    switch_header = "🔄 **Has cambiado exitosamente a Modo Remoto en Dólares.**\n\n" if is_switch else ""
+
+    dashboard_text = (
+        f"{switch_header}"
+        f"🚀 **SISTEMA DE EMPLEABILIDAD REMOTA & CV ATS EN DÓLARES**\n"
+        f"───────────────────────────────────\n"
+        f"Hola, **{first_name}**. Tu bot está configurado en **Modo Remoto USD**.\n\n"
+        f"▸ **El 85% de los CVs son descartados** por filtros ATS antes de que los lea una persona.\n"
+        f"▸ Este bot compila tu CV bajo **estándar Harvard ATS** (1 columna, fórmulas cuantitativas XYZ y palabras clave indexables).\n"
+        f"▸ Especializado en: **Outlier AI, Asistente Virtual Bilingüe, DataAnnotation, Customer Support y moderación de contenido**.\n"
+        f"▸ 🎯 **Optimizador según Vacante:** Usa **/boost** o el botón de hacks para adaptar tu perfil a la oferta exacta que pegues.\n\n"
+        f"👇 **Elige una opción para empezar o usa los botones del teclado inferior:**"
+    )
+
+    inline_dashboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎯 Hack de Vacante (Boost)", callback_data="btn_boost_menu")],
+        [
+            InlineKeyboardButton("📄 Crear CV Harvard ATS en USD", callback_data="btn_start_cv_remote"),
+            InlineKeyboardButton("🌐 Mini App Remota", web_app=WebAppInfo(url=remote_mini_url))
+        ],
+        [InlineKeyboardButton("📥 Descargar Kit Maestro en PDF", callback_data="btn_download_kit")],
+        [
+            InlineKeyboardButton("📢 Convocatorias en Dólares (Canal)", callback_data="btn_channel_link"),
+            InlineKeyboardButton("💡 Guía de Entrevistas USD", callback_data="btn_guide_interviews")
+        ],
+        [InlineKeyboardButton("🔄 Cambiar a Modo Formal", callback_data="btn_switch_to_formal")]
+    ])
+
+    query = update.callback_query
+    if query and query.message:
+        try:
+            await safe_edit_text(query, dashboard_text, parse_mode='Markdown', reply_markup=inline_dashboard)
+        except Exception:
+            await query.message.reply_text(dashboard_text, parse_mode='Markdown', reply_markup=persistent_keyboard)
+    elif update.message:
+        if os.path.exists(WELCOME_BANNER_PATH):
+            with open(WELCOME_BANNER_PATH, 'rb') as photo_file:
+                await update.message.reply_photo(
+                    photo=photo_file,
+                    caption=dashboard_text,
+                    parse_mode='Markdown',
+                    reply_markup=persistent_keyboard
+                )
+        else:
+            await update.message.reply_text(
+                dashboard_text,
+                parse_mode='Markdown',
+                reply_markup=persistent_keyboard
+            )
+
+    return ConversationHandler.END
+
+
+async def set_mode_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Maneja los callbacks de selección y cambio de modo."""
+    query = update.callback_query
+    if not query:
+        return
+    await query.answer()
+    data = query.data
+    user = update.effective_user
+
+    if data == "set_mode_formal":
+        set_user_mode(user, "formal", context)
+        return await show_formal_dashboard(update, context, user=user)
+    elif data == "set_mode_remote":
+        set_user_mode(user, "remote", context)
+        return await show_remote_dashboard(update, context, user=user)
+    elif data == "btn_switch_to_remote":
+        set_user_mode(user, "remote", context)
+        return await show_remote_dashboard(update, context, user=user, is_switch=True)
+    elif data == "btn_switch_to_formal":
+        set_user_mode(user, "formal", context)
+        return await show_formal_dashboard(update, context, user=user, is_switch=True)
+
+
+async def mode_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando /modo o /cambiar para abrir el selector de modalidad."""
+    return await show_mode_selection(update, context)
+
+
+async def switch_to_remote_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Cambia directamente al Modo Remoto en USD desde el dock inferior."""
+    user = update.effective_user
+    set_user_mode(user, 'remote', context)
+    return await show_remote_dashboard(update, context, user=user, is_switch=True)
+
+
+async def switch_to_formal_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Cambia directamente al Modo Formal desde el dock inferior."""
+    user = update.effective_user
+    set_user_mode(user, 'formal', context)
+    return await show_formal_dashboard(update, context, user=user, is_switch=True)
+
+
+async def formal_interview_tips_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Consejos prácticos para entrevistas de trabajo presenciales y formales."""
+    query = update.callback_query
+    if query:
+        await query.answer("Cargando consejos de entrevista...")
+        msg = query.message
+    else:
+        msg = update.message
+
+    user = update.effective_user
+    user_id = user.id if user else None
+    keyboard = [
+        [InlineKeyboardButton("📄 Crear mi Hoja de Vida Formal", callback_data="btn_start_cv_formal")],
+        [InlineKeyboardButton("📋 Salarios y Preguntas Frecuentes", callback_data="btn_formal_faqs")],
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="btn_back_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    tips_text = (
+        "💡 **GUÍA DE ÉXITO: ENTREVISTAS DE TRABAJO LOCALES**\n"
+        "───────────────────────────────────\n"
+        "Para vacantes en comercios, almacenes, empresas y bodegas, los reclutadores buscan seguridad, puntualidad y actitud:\n\n"
+        "1️⃣ **Puntualidad Impecable:**\n"
+        "▸ Llega 15 minutos antes de la hora fijada. En empleo formal, la puntualidad es la primera prueba de confiabilidad.\n\n"
+        "2️⃣ **Presentación Personal:**\n"
+        "▸ Viste ropa limpia, formal o casual ejecutiva (camisa/blusa en tonos neutros). Lleva 2 copias impresas de tu Hoja de Vida en una carpeta limpia.\n\n"
+        "3️⃣ **Cómo Responder sobre tu Experiencia:**\n"
+        "▸ Habla con hechos concretos: *'En mi trabajo anterior atendía más de 60 clientes al día y realizaba arqueo diario de caja sin faltantes'*.\n"
+        "▸ Si es tu primer empleo: *'Aprendo con gran rapidez, tengo disponibilidad horaria total y alto sentido de la responsabilidad'*.\n\n"
+        "4️⃣ **Pretensiones Salariales:**\n"
+        "▸ Responde: *'Estoy abierto a la asignación salarial de ley estipulada para el cargo, con todas las prestaciones y beneficios vigentes'*.\n\n"
+        "5️⃣ **Preguntas de Cierre:**\n"
+        "▸ Demuestra interés preguntando: *'¿Cuáles son los principales retos de este puesto en los primeros meses?'* o *'¿Qué oportunidades de aprendizaje ofrece la empresa?'*."
+    )
+
+    if query:
+        await safe_edit_text(query, tips_text, parse_mode='Markdown', reply_markup=reply_markup)
+    else:
+        persistent_keyboard = get_formal_reply_keyboard(user_id)
+        await msg.reply_text(tips_text, parse_mode='Markdown', reply_markup=persistent_keyboard)
+
+
+async def formal_faqs_salary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Preguntas frecuentes sobre salarios, contratos y postulación formal."""
+    query = update.callback_query
+    if query:
+        await query.answer("Cargando información salarial...")
+        msg = query.message
+    else:
+        msg = update.message
+
+    user = update.effective_user
+    user_id = user.id if user else None
+    keyboard = [
+        [InlineKeyboardButton("📄 Crear Hoja de Vida Formal", callback_data="btn_start_cv_formal")],
+        [InlineKeyboardButton("💡 Consejos para Entrevistas", callback_data="btn_formal_tips")],
+        [InlineKeyboardButton("🔙 Volver al Menú", callback_data="btn_back_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    faqs_text = (
+        "📋 **PREGUNTAS FRECUENTES & SALARIOS LOCALES**\n"
+        "───────────────────────────────────\n"
+        "Guía clara para postularte con total conocimiento del mercado laboral:\n\n"
+        "💰 **Rangos Salariales Referenciales:**\n"
+        "▸ **Ventas y Cajeros:** Salario base de ley + comisiones por cumplimiento de metas + recargos dominicales.\n"
+        "▸ **Bodega, Almacén y Logística:** 1 a 1.3 SMMLV + auxilio legal de transporte + horas extras remuneradas.\n"
+        "▸ **Auxiliares de Oficina y Recepción:** 1 a 1.4 SMMLV según manejo de herramientas ofimáticas y archivo.\n"
+        "▸ **Operarios de Producción:** Salario de ley con turnos rotativos y dotación completa reglamentaria.\n\n"
+        "📑 **Modalidades de Contratación:**\n"
+        "▸ **Término Fijo:** Con fecha de vencimiento y opción a prórroga. Otorga todas las prestaciones sociales.\n"
+        "▸ **Término Indefinido:** Máxima estabilidad jurídica y laboral.\n"
+        "▸ **Obra o Labor:** Vinculado a la duración específica de una tarea o temporada alta.\n\n"
+        "📄 **¿Por qué una Hoja de Vida de 1 Página en Cajas?**\n"
+        "▸ Los analistas de Recursos Humanos reciben cientos de hojas al día y dedican menos de 10 segundos al primer filtro. El formato en cajas resalta tus datos clave, contacto y trayectoria sin hojas vacías ni rellenos innecesarios."
+    )
+
+    if query:
+        await safe_edit_text(query, faqs_text, parse_mode='Markdown', reply_markup=reply_markup)
+    else:
+        persistent_keyboard = get_formal_reply_keyboard(user_id)
+        await msg.reply_text(faqs_text, parse_mode='Markdown', reply_markup=persistent_keyboard)
 
 
 async def channel_link_tracker_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -967,15 +1347,53 @@ async def user_text_input_dispatcher(update: Update, context: ContextTypes.DEFAU
         return
 
     text = update.message.text.strip()
+    user = update.effective_user
+
+    # Intercepción de botones de Modo Formal
+    if text == BTN_FORMAL_CV:
+        return await start_cv_formal_entry(update, context)
+    elif text == BTN_FORMAL_TIPS:
+        return await formal_interview_tips_handler(update, context)
+    elif text == BTN_FORMAL_FAQS:
+        return await formal_faqs_salary_handler(update, context)
+    elif text == BTN_FORMAL_SWITCH_REMOTE:
+        return await switch_to_remote_handler(update, context)
+
+    # Intercepción de botones de Modo Remoto
+    elif text == BTN_REMOTE_CV:
+        return await start_cv_remote_entry(update, context)
+    elif text in (BTN_REMOTE_BOOST, BTN_BOTTOM_BOOST):
+        return await boost_menu_callback(update, context)
+    elif text in (BTN_REMOTE_KIT, BTN_BOTTOM_KIT):
+        return await download_kit_callback(update, context)
+    elif text in (BTN_REMOTE_CHANNEL, BTN_BOTTOM_CHANNEL):
+        return await channel_link_tracker_callback(update, context)
+    elif text in (BTN_REMOTE_GUIDE, BTN_BOTTOM_GUIDE):
+        return await guide_interviews_callback(update, context)
+    elif text == BTN_REMOTE_SWITCH_FORMAL:
+        return await switch_to_formal_handler(update, context)
+
+    # Selección directa sin modo configurado
+    elif text == "📄 Modo 1: Hoja de Vida Formal":
+        return await switch_to_formal_handler(update, context)
+    elif text == "🚀 Modo 2: Empleos Remotos USD":
+        return await switch_to_remote_handler(update, context)
+
+    # Botones legacy de compatibilidad
+    elif text == BTN_BOTTOM_CV:
+        return await start_cv_entry(update, context)
+    elif text == BTN_BOTTOM_PACK:
+        return await referrals_menu_callback(update, context)
+    elif text == BTN_BOTTOM_ATS:
+        return await why_ats_callback(update, context)
+    elif text == BTN_BOTTOM_ALERTS:
+        return await toggle_alerts_callback(update, context)
+    elif text == BTN_BOTTOM_ADMIN:
+        return await admin_panel_command(update, context)
 
     # Si está esperando el texto de una oferta de empleo para optimizarla
     if context.user_data.get('awaiting_job_offer'):
         await handle_pasted_job_offer(update, context)
-        return
-
-    # Si presionó el botón de Boost en el dock inferior
-    if text == BTN_BOTTOM_BOOST:
-        await boost_menu_callback(update, context)
         return
 
     # Detección inteligente de ofertas de empleo pegadas directamente en el chat
@@ -985,19 +1403,49 @@ async def user_text_input_dispatcher(update: Update, context: ContextTypes.DEFAU
         await handle_pasted_job_offer(update, context)
         return
 
-    # Fallback informativo para guiar al usuario
-    keyboard = [
-        [InlineKeyboardButton("🎯 Adaptar CV a mi Vacante (Hack de Contratación / Palabras Clave)", callback_data="btn_boost_menu")],
-        [InlineKeyboardButton("📄 Crear mi CV ATS Directo", callback_data="btn_start_cv"), InlineKeyboardButton("🌐 Abrir Mini App", web_app=WebAppInfo(url=MINI_APP_URL))]
-    ]
-    await update.message.reply_text(
-        "👋 ¡Hola! Soy tu asistente de Empleabilidad y CV ATS de Élite.\n\n"
-        "▸ Pulsa **/boost** o el botón inferior para optimizar tu CV con palabras clave indexables según la vacante a la que aspiras.\n"
-        "▸ Pulsa **/cv** para crear tu Hoja de Vida formal o CV Remoto en USD paso a paso.\n"
-        "▸ O pega directamente aquí la oferta de empleo para analizarla al instante.",
-        parse_mode='Markdown',
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    # Fallback informativo adaptado al modo del usuario
+    user_mode = get_user_mode(user.id if user else None, context)
+    if user_mode == 'formal':
+        keyboard = [
+            [InlineKeyboardButton("📄 Crear Hoja de Vida Formal (Cajas)", callback_data="btn_start_cv_formal")],
+            [InlineKeyboardButton("🌐 Diseñar en Mini App", web_app=WebAppInfo(url=get_mini_app_url('formal')))],
+            [InlineKeyboardButton("💡 Consejos para Entrevistas", callback_data="btn_formal_tips"), InlineKeyboardButton("📋 Salarios y Preguntas Frecuentes", callback_data="btn_formal_faqs")],
+            [InlineKeyboardButton("🔄 Cambiar a Modo Remoto USD", callback_data="btn_switch_to_remote")]
+        ]
+        await update.message.reply_text(
+            "👋 Hola. Tu asistente de **Hoja de Vida Formal** está listo.\n\n"
+            "▸ Pulsa **📄 Crear Hoja de Vida Formal (Cajas)** para generar tu documento de 1 página.\n"
+            "▸ Pulsa **🌐 Diseñar en Mini App** para completarla de forma visual.\n"
+            "▸ O pulsa **/modo** si buscas oportunidades remotas en USD.",
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    elif user_mode == 'remote':
+        keyboard = [
+            [InlineKeyboardButton("🎯 Adaptar CV a mi Vacante (Boost)", callback_data="btn_boost_menu")],
+            [InlineKeyboardButton("📄 Crear CV Harvard ATS en USD", callback_data="btn_start_cv_remote"), InlineKeyboardButton("🌐 Mini App Remota", web_app=WebAppInfo(url=get_mini_app_url('remote')))],
+            [InlineKeyboardButton("🔄 Cambiar a Modo Formal", callback_data="btn_switch_to_formal")]
+        ]
+        await update.message.reply_text(
+            "👋 Hola. Tu asistente de **CV ATS Remoto en USD** está listo.\n\n"
+            "▸ Pulsa **/boost** para optimizar tu CV con palabras clave indexables según la vacante a la que aspiras.\n"
+            "▸ Pulsa **/cv** para crear tu CV Harvard ATS paso a paso.\n"
+            "▸ O pega directamente aquí la oferta de empleo para analizarla al instante.",
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    else:
+        keyboard = [
+            [InlineKeyboardButton("📄 Modo 1: Hoja de Vida Formal (Normal)", callback_data="set_mode_formal")],
+            [InlineKeyboardButton("🚀 Modo 2: Empleos Remotos en USD (ATS)", callback_data="set_mode_remote")]
+        ]
+        await update.message.reply_text(
+            "👋 ¡Hola! Por favor selecciona en qué modalidad deseas trabajar:\n\n"
+            "1️⃣ **Hoja de Vida Formal:** Para empresas locales, comercios, bodegas y oficinas.\n"
+            "2️⃣ **CV Remoto en Dólares:** Para Outlier AI, Asistente Virtual y trabajo remoto en USD.",
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
 
 
@@ -1226,7 +1674,7 @@ async def download_secret_pack_callback(update: Update, context: ContextTypes.DE
 # Entrada de Creación de CV (Directo y sin Bloqueos)
 # ========================================================
 async def start_cv_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Inicia el flujo interactivo de creación de CV."""
+    """Inicia el flujo interactivo de creación de CV respetando el modo activo del usuario."""
     query = update.callback_query
     if query:
         await query.answer()
@@ -1234,6 +1682,43 @@ async def start_cv_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     else:
         msg = update.message
 
+    user = update.effective_user
+    user_mode = get_user_mode(user.id if user else None, context)
+    if user_mode == 'formal':
+        context.user_data['cv_type'] = 'formal_boxed'
+    elif user_mode == 'remote':
+        context.user_data['cv_type'] = 'remote_ats'
+
+    return await start_cv_step_1(msg, context)
+
+
+async def start_cv_formal_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Inicia el flujo directamente en Modo Hoja de Vida Formal."""
+    query = update.callback_query
+    if query:
+        await query.answer()
+        msg = query.message
+    else:
+        msg = update.message
+
+    user = update.effective_user
+    set_user_mode(user, 'formal', context)
+    context.user_data['cv_type'] = 'formal_boxed'
+    return await start_cv_step_1(msg, context)
+
+
+async def start_cv_remote_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Inicia el flujo directamente en Modo Remoto ATS en USD."""
+    query = update.callback_query
+    if query:
+        await query.answer()
+        msg = query.message
+    else:
+        msg = update.message
+
+    user = update.effective_user
+    set_user_mode(user, 'remote', context)
+    context.user_data['cv_type'] = 'remote_ats'
     return await start_cv_step_1(msg, context)
 
 
@@ -1243,23 +1728,28 @@ start_cv_unlocked_callback = start_cv_entry
 
 
 async def cancel_cv_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Cancela el flujo de CV y regresa limpiamente al menú principal."""
+    """Cancela el flujo de CV y regresa limpiamente al menú principal según su modo."""
     query = update.callback_query
     if query:
         try:
-            await query.answer("Creación de CV cancelada.")
+            await query.answer("Creación cancelada.")
         except Exception:
             pass
-    context.user_data.clear()
-
-    cancel_msg = (
-        "❌ **Creación de CV cancelada.**\n\n"
-        "Se ha restablecido tu sesión. Puedes volver a iniciar cuando quieras tocando **📄 Crear mi CV ATS** "
-        "o explorar las opciones disponibles en el menú inferior 👇"
-    )
     user = update.effective_user
     user_id = user.id if user else None
-    persistent_keyboard = get_main_reply_keyboard(user_id)
+    user_mode = get_user_mode(user_id, context)
+    context.user_data.clear()
+    if user_mode:
+        context.user_data['user_mode'] = user_mode
+        context.user_data['cv_type'] = 'remote_ats' if user_mode == 'remote' else 'formal_boxed'
+
+    persistent_keyboard = get_main_reply_keyboard(user_id, mode=user_mode)
+
+    cancel_msg = (
+        "❌ **Operación cancelada.**\n\n"
+        "Se ha restablecido tu sesión. Puedes volver a iniciar cuando quieras "
+        "o explorar las opciones disponibles en el menú inferior 👇"
+    )
 
     if query and query.message:
         try:
@@ -1277,24 +1767,58 @@ async def check_dock_interrupt(update: Update, context: ContextTypes.DEFAULT_TYP
     if not update.message or not update.message.text:
         return False, 0
     raw_text = update.message.text.strip()
-    dock_buttons = [BTN_BOTTOM_CV, BTN_BOTTOM_BOOST, BTN_BOTTOM_PACK, BTN_BOTTOM_CHANNEL, BTN_BOTTOM_KIT, BTN_BOTTOM_GUIDE, BTN_BOTTOM_ATS, BTN_BOTTOM_ALERTS, BTN_BOTTOM_ADMIN]
+    dock_buttons = [
+        BTN_FORMAL_CV, BTN_FORMAL_TIPS, BTN_FORMAL_FAQS, BTN_FORMAL_SWITCH_REMOTE,
+        BTN_REMOTE_CV, BTN_REMOTE_BOOST, BTN_REMOTE_KIT, BTN_REMOTE_CHANNEL, BTN_REMOTE_GUIDE, BTN_REMOTE_SWITCH_FORMAL,
+        "📄 Modo 1: Hoja de Vida Formal", "🚀 Modo 2: Empleos Remotos USD",
+        BTN_BOTTOM_CV, BTN_BOTTOM_BOOST, BTN_BOTTOM_PACK, BTN_BOTTOM_CHANNEL, BTN_BOTTOM_KIT, BTN_BOTTOM_GUIDE, BTN_BOTTOM_ATS, BTN_BOTTOM_ALERTS, BTN_BOTTOM_ADMIN
+    ]
     if raw_text not in dock_buttons:
         return False, 0
 
+    user = update.effective_user
+    user_id = user.id if user else None
+    user_mode = get_user_mode(user_id, context)
     context.user_data.clear()
-    if raw_text == BTN_BOTTOM_CV:
+    if user_mode:
+        context.user_data['user_mode'] = user_mode
+        context.user_data['cv_type'] = 'remote_ats' if user_mode == 'remote' else 'formal_boxed'
+
+    if raw_text == BTN_FORMAL_CV:
+        set_user_mode(user, 'formal', context)
+        context.user_data['cv_type'] = 'formal_boxed'
         res = await start_cv_step_1(update.message, context)
         return True, res
-    elif raw_text == BTN_BOTTOM_BOOST:
+    elif raw_text == BTN_FORMAL_TIPS:
+        await formal_interview_tips_handler(update, context)
+    elif raw_text == BTN_FORMAL_FAQS:
+        await formal_faqs_salary_handler(update, context)
+    elif raw_text == BTN_FORMAL_SWITCH_REMOTE:
+        await switch_to_remote_handler(update, context)
+    elif raw_text == BTN_REMOTE_CV:
+        set_user_mode(user, 'remote', context)
+        context.user_data['cv_type'] = 'remote_ats'
+        res = await start_cv_step_1(update.message, context)
+        return True, res
+    elif raw_text in (BTN_REMOTE_BOOST, BTN_BOTTOM_BOOST):
         await boost_menu_callback(update, context)
+    elif raw_text in (BTN_REMOTE_KIT, BTN_BOTTOM_KIT):
+        await download_kit_callback(update, context)
+    elif raw_text in (BTN_REMOTE_CHANNEL, BTN_BOTTOM_CHANNEL):
+        await channel_link_tracker_callback(update, context)
+    elif raw_text in (BTN_REMOTE_GUIDE, BTN_BOTTOM_GUIDE):
+        await guide_interviews_callback(update, context)
+    elif raw_text == BTN_REMOTE_SWITCH_FORMAL:
+        await switch_to_formal_handler(update, context)
+    elif raw_text == "📄 Modo 1: Hoja de Vida Formal":
+        await switch_to_formal_handler(update, context)
+    elif raw_text == "🚀 Modo 2: Empleos Remotos USD":
+        await switch_to_remote_handler(update, context)
+    elif raw_text == BTN_BOTTOM_CV:
+        res = await start_cv_step_1(update.message, context)
+        return True, res
     elif raw_text == BTN_BOTTOM_PACK:
         await referrals_menu_callback(update, context)
-    elif raw_text == BTN_BOTTOM_CHANNEL:
-        await channel_link_tracker_callback(update, context)
-    elif raw_text == BTN_BOTTOM_KIT:
-        await download_kit_callback(update, context)
-    elif raw_text == BTN_BOTTOM_GUIDE:
-        await guide_interviews_callback(update, context)
     elif raw_text == BTN_BOTTOM_ATS:
         await why_ats_callback(update, context)
     elif raw_text == BTN_BOTTOM_ALERTS:
@@ -1307,21 +1831,56 @@ async def check_dock_interrupt(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def start_cv_step_1(message, context) -> int:
     """Paso 1: Selección de modalidad y datos de contacto."""
-    cancel_markup = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🌐 Diseñar en Mini App (Visual e In-App)", web_app=WebAppInfo(url=MINI_APP_URL))],
-        [InlineKeyboardButton("📄 Hoja de Vida Formal (Normal)", callback_data="mode_formal"), InlineKeyboardButton("🚀 CV Remoto USD (Outlier)", callback_data="mode_remote")],
-        [InlineKeyboardButton("❌ Cancelar y Volver al Menú", callback_data="btn_cancel_cv")]
-    ])
-    prompt = (
-        "📋 **CREACIÓN DE CURRÍCULUM • SELECCIONA TU MODALIDAD**\n"
-        "`[██░░░░░░░░] 16% completado`\n"
-        "───────────────────────────────────\n"
-        "¿Qué tipo de currículum necesitas?\n\n"
-        "1️⃣ **📄 Hoja de Vida Formal:** Para empresas locales y empleos tradicionales (Ventas, Administración, Bodega, Operarios, Primaria y Secundaria con años).\n\n"
-        "2️⃣ **🚀 CV Remoto en Dólares:** Formato Harvard ATS optimizado para vacantes en USD (Outlier AI, Asistente Virtual, Remoto Global).\n\n"
-        "✍️ Escribe en un mensaje tu **Nombre Completo y Celular o Correo** para continuar:\n"
-        "*(Ej: Carlos Pérez, 3001234567)*"
-    )
+    cv_type = context.user_data.get('cv_type')
+    user_mode = context.user_data.get('user_mode')
+
+    if cv_type == 'formal_boxed' or user_mode == 'formal':
+        formal_mini_url = get_mini_app_url('formal')
+        cancel_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🌐 Diseñar en Mini App Formal", web_app=WebAppInfo(url=formal_mini_url))],
+            [InlineKeyboardButton("🚀 Cambiar a CV Remoto USD", callback_data="mode_remote")],
+            [InlineKeyboardButton("❌ Cancelar y Volver al Menú", callback_data="btn_cancel_cv")]
+        ])
+        prompt = (
+            "📋 **CREACIÓN DE HOJA DE VIDA FORMAL (EN CAJAS)**\n"
+            "`[██░░░░░░░░] 16% completado`\n"
+            "───────────────────────────────────\n"
+            "Formato ejecutivo en cajas sobrias y elegantes, ideal para comercios, empresas, bodegas y oficios.\n\n"
+            "✍️ Escribe en un mensaje tu **Nombre Completo y Celular o Correo** para continuar:\n"
+            "*(Ej: Carlos Pérez, 3001234567)*"
+        )
+    elif cv_type == 'remote_ats' or user_mode == 'remote':
+        remote_mini_url = get_mini_app_url('remote')
+        cancel_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🌐 Diseñar en Mini App Remota", web_app=WebAppInfo(url=remote_mini_url))],
+            [InlineKeyboardButton("🎯 Usar Hacks de Vacante (Boost)", callback_data="boost_custom_prompt")],
+            [InlineKeyboardButton("📄 Cambiar a Hoja de Vida Formal", callback_data="mode_formal")],
+            [InlineKeyboardButton("❌ Cancelar y Volver al Menú", callback_data="btn_cancel_cv")]
+        ])
+        prompt = (
+            "📋 **CREACIÓN DE CV REMOTO ATS EN DÓLARES**\n"
+            "`[██░░░░░░░░] 16% completado`\n"
+            "───────────────────────────────────\n"
+            "Formato Harvard ATS de 1 columna con palabras clave y fórmulas cuantitativas XYZ para Outlier AI, Asistente Virtual y trabajo remoto.\n\n"
+            "✍️ Escribe en un mensaje tu **Nombre Completo y Celular o Correo** para continuar:\n"
+            "*(Ej: Carlos Pérez, 3001234567)*"
+        )
+    else:
+        cancel_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🌐 Diseñar en Mini App", web_app=WebAppInfo(url=MINI_APP_URL))],
+            [InlineKeyboardButton("📄 Hoja de Vida Formal (Normal)", callback_data="mode_formal"), InlineKeyboardButton("🚀 CV Remoto USD (Outlier)", callback_data="mode_remote")],
+            [InlineKeyboardButton("❌ Cancelar y Volver al Menú", callback_data="btn_cancel_cv")]
+        ])
+        prompt = (
+            "📋 **CREACIÓN DE CURRÍCULUM • SELECCIONA TU MODALIDAD**\n"
+            "`[██░░░░░░░░] 16% completado`\n"
+            "───────────────────────────────────\n"
+            "¿Qué tipo de currículum necesitas?\n\n"
+            "1️⃣ **📄 Hoja de Vida Formal:** Para empresas locales y empleos tradicionales (Ventas, Administración, Bodega, Operarios, Primaria y Secundaria con años).\n\n"
+            "2️⃣ **🚀 CV Remoto en Dólares:** Formato Harvard ATS optimizado para vacantes en USD (Outlier AI, Asistente Virtual, Remoto Global).\n\n"
+            "✍️ Escribe en un mensaje tu **Nombre Completo y Celular o Correo** para continuar:\n"
+            "*(Ej: Carlos Pérez, 3001234567)*"
+        )
     await message.reply_text(prompt, parse_mode='Markdown', reply_markup=cancel_markup)
     return STEP_NAME
 
@@ -1382,24 +1941,44 @@ async def handle_country_callback(update: Update, context: ContextTypes.DEFAULT_
         )
         return await ask_english_step(query.message, context)
 
-    keyboard = [
-        [InlineKeyboardButton("🛒 Ventas & Comercio", callback_data="job_ventas"), InlineKeyboardButton("📁 Auxiliar Administrativo", callback_data="job_admin")],
-        [InlineKeyboardButton("📦 Almacén & Bodega", callback_data="job_bodega"), InlineKeyboardButton("🎧 Atención al Cliente", callback_data="job_servicio")],
-        [InlineKeyboardButton("⚙️ Operario de Planta", callback_data="job_operario"), InlineKeyboardButton("🛡️ Vigilancia & Mant.", callback_data="job_seguridad")],
-        [InlineKeyboardButton("🍽️ Hostelería & Cocina", callback_data="job_hosteleria"), InlineKeyboardButton("🚗 Conductor & Reparto", callback_data="job_transporte")],
-        [InlineKeyboardButton("🌱 Primer Empleo (Sin exp.)", callback_data="job_primer_empleo"), InlineKeyboardButton("✍️ Escribir otro cargo", callback_data="job_custom")],
-        [InlineKeyboardButton("🎯 Hacks de Vacante / Pegar Oferta (Boost)", callback_data="boost_custom_prompt")],
-        [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    if context.user_data.get('cv_type') == 'remote_ats':
+        keyboard = [
+            [InlineKeyboardButton("🤖 Outlier AI / Evaluador LLM", callback_data="job_outlier_ai"), InlineKeyboardButton("💼 Asistente Virtual Bilingüe", callback_data="job_virtual_assistant")],
+            [InlineKeyboardButton("📊 Evaluador Búsqueda / Datos", callback_data="job_data_evaluator"), InlineKeyboardButton("🎧 Customer Support Remoto", callback_data="job_customer_support_remote")],
+            [InlineKeyboardButton("🛡️ Moderador de Contenido", callback_data="job_content_moderator"), InlineKeyboardButton("🌐 Especialista Remoto Gral.", callback_data="job_custom_remote")],
+            [InlineKeyboardButton("✍️ Escribir otro cargo remoto", callback_data="job_custom")],
+            [InlineKeyboardButton("🎯 Hacks de Vacante / Pegar Oferta (Boost)", callback_data="boost_custom_prompt")],
+            [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
+        ]
+        intro_text = (
+            f"📍 País confirmado: **{country_val}**\n\n"
+            "📋 **PASO 3 DE 6 • ROL REMOTO OBJETIVO**\n"
+            "`[██████░░░░] 50% completado`\n"
+            "───────────────────────────────────\n"
+            "Selecciona tu especialidad remota o proyecto internacional:\n\n"
+            "*(Se estructurará bajo estándar Harvard ATS con métricas cuantitativas).* "
+        )
+    else:
+        keyboard = [
+            [InlineKeyboardButton("🛒 Ventas & Comercio", callback_data="job_ventas"), InlineKeyboardButton("📁 Auxiliar Administrativo", callback_data="job_admin")],
+            [InlineKeyboardButton("📦 Almacén & Bodega", callback_data="job_bodega"), InlineKeyboardButton("🎧 Atención al Cliente", callback_data="job_servicio")],
+            [InlineKeyboardButton("⚙️ Operario de Planta", callback_data="job_operario"), InlineKeyboardButton("🛡️ Vigilancia & Seguridad", callback_data="job_seguridad")],
+            [InlineKeyboardButton("🍽️ Hostelería & Cocina", callback_data="job_hosteleria"), InlineKeyboardButton("🚗 Conductor & Reparto", callback_data="job_transporte")],
+            [InlineKeyboardButton("🌱 Primer Empleo (Sin exp.)", callback_data="job_primer_empleo"), InlineKeyboardButton("✍️ Escribir otro cargo u oficio", callback_data="job_custom")],
+            [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
+        ]
+        intro_text = (
+            f"📍 País confirmado: **{country_val}**\n\n"
+            "📋 **PASO 3 DE 6 • CARGO / OFICIO OBJETIVO**\n"
+            "`[██████░░░░] 50% completado`\n"
+            "───────────────────────────────────\n"
+            "Selecciona el oficio o área laboral a la que te postulas:\n\n"
+            "*(Se estructurará con funciones formales y logros comprobables).* "
+        )
 
+    reply_markup = InlineKeyboardMarkup(keyboard)
     await query.message.reply_text(
-        f"📍 País confirmado: **{country_val}**\n\n"
-        "📋 **PASO 3 DE 6 • PERFIL OBJETIVO**\n"
-        "`[██████░░░░] 50% completado`\n"
-        "───────────────────────────────────\n"
-        "Selecciona el área o cargo al que aspiras postularte:\n\n"
-        "*(Se estructurará bajo formato Harvard y fórmulas cuantitativas XYZ).* ",
+        intro_text,
         parse_mode='Markdown',
         reply_markup=reply_markup
     )
@@ -1425,19 +2004,30 @@ async def handle_target_callback(update: Update, context: ContextTypes.DEFAULT_T
         "primer_empleo": "Candidato Primer Empleo (Sin Experiencia Previa)",
         "sales": "Asesor Comercial & Ventas",
         "support": "Servicio al Cliente & Soporte",
-        "ai": "Evaluador de Modelos de IA"
+        "ai": "Evaluador de Modelos de IA",
+        "outlier_ai": "AI Training Specialist & Content Reviewer",
+        "virtual_assistant": "Bilingual Executive Assistant",
+        "data_evaluator": "Search & Data Quality Evaluator",
+        "customer_support_remote": "Customer Experience Specialist",
+        "content_moderator": "Trust & Safety Content Moderator",
+        "custom_remote": "Autonomous Remote Specialist"
     }
 
     if job_code == "custom":
         cancel_markup = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]])
+        prompt_custom = (
+            "✍️ Escribe el **nombre del cargo remoto** al que aspiras:\n*(Ejemplo: Agente de Soporte al Cliente, Diseñador Gráfico, etc.)*"
+            if context.user_data.get('cv_type') == 'remote_ats' else
+            "✍️ Escribe el **nombre del oficio o cargo** al que aspiras:\n*(Ejemplo: Auxiliar de Facturación, Cajero, Conductor, etc.)*"
+        )
         await query.message.reply_text(
-            "✍️ Escribe el **nombre del cargo** al que aspiras:\n*(Ejemplo: Agente de Soporte al Cliente, Diseñador Gráfico, etc.)*",
+            prompt_custom,
             parse_mode='Markdown',
             reply_markup=cancel_markup
         )
         return STEP_TARGET
 
-    target_title = job_titles.get(job_code, "Evaluador de Inteligencia Artificial")
+    target_title = job_titles.get(job_code, "Especialista Profesional")
     context.user_data['target_job'] = target_title
     context.user_data['job_category'] = job_code
     booster = get_vacancy_booster(job_code)
@@ -1473,25 +2063,42 @@ async def receive_custom_target(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def ask_english_step(message, context) -> int:
-    """Muestra botones de idiomas con opción de Solo Español (100% opcional)."""
-    keyboard = [
-        [InlineKeyboardButton("✅ Solo Español (Nativo)", callback_data="eng_none")],
-        [InlineKeyboardButton("🟡 Inglés Básico / Técnico", callback_data="eng_basic")],
-        [InlineKeyboardButton("🔵 Inglés Intermedio Conversacional", callback_data="eng_intermediate")],
-        [InlineKeyboardButton("⭐ Bilingüe Fluido (C1-C2)", callback_data="eng_advanced")],
-        [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    """Muestra botones de idiomas con opción adaptada al tipo de currículum."""
+    cv_type = context.user_data.get('cv_type')
+    if cv_type == 'remote_ats':
+        keyboard = [
+            [InlineKeyboardButton("⭐ Bilingüe C1/C2 (Avanzado Fluido)", callback_data="eng_advanced")],
+            [InlineKeyboardButton("🔵 Inglés Conversacional B2", callback_data="eng_intermediate")],
+            [InlineKeyboardButton("🟡 Inglés Básico / Técnico B1", callback_data="eng_basic")],
+            [InlineKeyboardButton("✅ Solo Español (Proyectos en Español)", callback_data="eng_none")],
+            [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
+        ]
+        prompt = (
+            f"🎯 Rol Seleccionado: **{context.user_data.get('target_job', 'Trabajo Remoto')}**\n\n"
+            "📋 **PASO 4 DE 6 • NIVEL DE INGLÉS PARA VACANTES USD**\n"
+            "`[████████░░] 66% completado`\n"
+            "───────────────────────────────────\n"
+            "Selecciona tu nivel de inglés para calibrar tus palabras clave en el CV ATS:\n\n"
+            "*(Si aplicas a proyectos de IA o soporte 100% en español, elige 'Solo Español').*"
+        )
+    else:
+        keyboard = [
+            [InlineKeyboardButton("✅ Solo Español (Nativo)", callback_data="eng_none")],
+            [InlineKeyboardButton("🟡 Inglés Básico", callback_data="eng_basic")],
+            [InlineKeyboardButton("🔵 Inglés Intermedio Conversacional", callback_data="eng_intermediate")],
+            [InlineKeyboardButton("⭐ Bilingüe Fluido (C1-C2)", callback_data="eng_advanced")],
+            [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
+        ]
+        prompt = (
+            f"🎯 Cargo Seleccionado: **{context.user_data.get('target_job', 'Cargo Formal')}**\n\n"
+            "📋 **PASO 4 DE 6 • IDIOMAS (100% OPCIONAL)**\n"
+            "`[████████░░] 66% completado`\n"
+            "───────────────────────────────────\n"
+            "Para empleos normales solo se requiere Español. Si no manejas otro idioma, toca **'Solo Español'**:"
+        )
 
-    await message.reply_text(
-        f"🎯 Cargo seleccionado: **{context.user_data['target_job']}**\n\n"
-        "📋 **PASO 4 DE 6 • IDIOMAS (100% OPCIONAL)**\n"
-        "`[████████░░] 66% completado`\n"
-        "───────────────────────────────────\n"
-        "Para empleos normales solo se requiere Español. Si no manejas otro idioma, toca **'Solo Español'**:",
-        parse_mode='Markdown',
-        reply_markup=reply_markup
-    )
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await message.reply_text(prompt, parse_mode='Markdown', reply_markup=reply_markup)
     return STEP_ENGLISH
 
 
@@ -1512,13 +2119,22 @@ async def handle_english_callback(update: Update, context: ContextTypes.DEFAULT_
         context.user_data['english_level'] = eng_map.get(query.data, "Español Nativo")
         context.user_data['language_text'] = eng_map.get(query.data, "Español Nativo")
 
-    keyboard = [
-        [InlineKeyboardButton("🏫 Secundaria / Bachiller Completo & Primaria", callback_data="edu_highschool")],
-        [InlineKeyboardButton("🎓 Técnico / Tecnológico (SENA o Instituto)", callback_data="edu_technician")],
-        [InlineKeyboardButton("📚 Universitario (En curso o graduado)", callback_data="edu_university")],
-        [InlineKeyboardButton("📝 Primaria Completa", callback_data="edu_primaria")],
-        [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
-    ]
+    if context.user_data.get('cv_type') == 'remote_ats':
+        keyboard = [
+            [InlineKeyboardButton("🎓 Universitario Titulado / Graduado", callback_data="edu_university")],
+            [InlineKeyboardButton("📚 Universitario en Curso / Superior", callback_data="edu_technician")],
+            [InlineKeyboardButton("💻 Técnico / Tecnológico Especializado", callback_data="edu_highschool")],
+            [InlineKeyboardButton("📜 Certificaciones Profesionales / Cursos", callback_data="edu_primaria")],
+            [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
+        ]
+    else:
+        keyboard = [
+            [InlineKeyboardButton("🏫 Secundaria / Bachiller Completo & Primaria", callback_data="edu_highschool")],
+            [InlineKeyboardButton("🎓 Técnico / Tecnológico (SENA o Instituto)", callback_data="edu_technician")],
+            [InlineKeyboardButton("📚 Universitario (En curso o graduado)", callback_data="edu_university")],
+            [InlineKeyboardButton("📝 Primaria Completa", callback_data="edu_primaria")],
+            [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
+        ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.message.reply_text(
@@ -1558,7 +2174,30 @@ async def handle_education_callback(update: Update, context: ContextTypes.DEFAUL
             "primaria": {"colegio": "Escuela Básica Primaria", "ano": "Primaria Completa", "estado": "Completa"}
         }
     }
-    context.user_data['education'] = edu_map.get(query.data, "Formación Académica Completa")
+
+    edu_remote_map = {
+        "edu_university": {
+            "universidad": {"institucion": "Universidad / Institución Superior", "titulo": "Licenciatura / Pregrado Profesional", "ano": "Titulado"},
+            "certificaciones": "Certificaciones Profesionales Online"
+        },
+        "edu_technician": {
+            "universidad": {"institucion": "Universidad / Instituto Superior", "titulo": "Estudios Universitarios en Curso", "ano": "En Curso"},
+            "certificaciones": "Cursos Técnicos y Habilidades Digitales"
+        },
+        "edu_highschool": {
+            "universidad": {"institucion": "Instituto Tecnológico / Superior", "titulo": "Tecnólogo / Carrera Técnica", "ano": "Graduado"},
+            "certificaciones": "Formación Práctica Especializada"
+        },
+        "edu_primaria": {
+            "universidad": {"institucion": "Plataformas de Educación Continua", "titulo": "Certificaciones Profesionales", "ano": "Completadas"},
+            "certificaciones": "Bootcamps y Cursos de Especialización"
+        }
+    }
+
+    if context.user_data.get('cv_type') == 'remote_ats':
+        context.user_data['education'] = edu_remote_map.get(query.data, edu_remote_map["edu_university"])
+    else:
+        context.user_data['education'] = edu_map.get(query.data, "Formación Académica Completa")
 
     keyboard = [
         [InlineKeyboardButton("🌱 Primer Empleo (Sin experiencia laboral previa)", callback_data="exp_beginner")],
@@ -1666,9 +2305,16 @@ async def generate_and_send_final_cv(message, user, context) -> int:
                 "📥 *Tu archivo PDF listo para imprimir o enviar por WhatsApp/Correo está adjunto arriba.*"
             )
 
-        keyboard = [
-            [InlineKeyboardButton("🎁 Desbloquear Respuestas Examen Outlier (Pack Secreto)", callback_data="btn_referrals_menu")]
-        ]
+        if cv_mode == 'remote_ats':
+            keyboard = [
+                [InlineKeyboardButton("🎁 Pack Secreto: Respuestas Examen Outlier", callback_data="btn_referrals_menu")],
+                [InlineKeyboardButton("🎯 Optimizar Otra Vacante (Boost)", callback_data="btn_boost_menu")]
+            ]
+        else:
+            keyboard = [
+                [InlineKeyboardButton("💡 Consejos para tu Entrevista de Trabajo", callback_data="btn_formal_tips")],
+                [InlineKeyboardButton("📄 Crear Otra Hoja de Vida Formal", callback_data="btn_start_cv_formal")]
+            ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await message.reply_document(
@@ -2904,7 +3550,11 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         raw_data = msg.web_app_data.data
         data = json.loads(raw_data)
         if data.get('action') == 'generate_cv':
-            context.user_data['cv_type'] = data.get('cv_type', 'formal_boxed')
+            cv_t = data.get('cv_type', 'formal_boxed')
+            context.user_data['cv_type'] = cv_t
+            detected_mode = 'remote' if cv_t == 'remote_ats' else 'formal'
+            set_user_mode(update.effective_user, detected_mode, context)
+
             context.user_data['name'] = data.get('name', 'CANDIDATO PROFESIONAL')
             context.user_data['phone'] = data.get('phone', '')
             context.user_data['city'] = data.get('city', '')
@@ -2924,7 +3574,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             if data.get('boosted_summary'):
                 context.user_data['custom_summary'] = data.get('boosted_summary')
 
-            save_subscriber(update.effective_user, country=context.user_data['country'], target_job=context.user_data['target_job'])
+            save_subscriber(update.effective_user, country=context.user_data['country'], target_job=context.user_data['target_job'], user_mode=detected_mode)
             await generate_and_send_final_cv(msg, update.effective_user, context)
     except Exception as e:
         logger.error(f"Error procesando web_app_data: {e}", exc_info=True)
@@ -3884,10 +4534,14 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancela cualquier operación actual y vuelve al estado normal."""
-    context.user_data.clear()
     user = update.effective_user
     user_id = user.id if user else None
-    persistent_keyboard = get_main_reply_keyboard(user_id)
+    user_mode = get_user_mode(user_id, context)
+    context.user_data.clear()
+    if user_mode:
+        context.user_data['user_mode'] = user_mode
+        context.user_data['cv_type'] = 'remote_ats' if user_mode == 'remote' else 'formal_boxed'
+    persistent_keyboard = get_main_reply_keyboard(user_id, mode=user_mode)
 
     await update.message.reply_text(
         "❌ **Operación cancelada.**\n\nSe ha restablecido tu sesión. Puedes explorar las opciones en el menú inferior 👇",
@@ -3912,7 +4566,11 @@ def main():
         entry_points=[
             CommandHandler('cv', start_cv_entry),
             CallbackQueryHandler(start_cv_entry, pattern="^btn_start_cv$"),
+            CallbackQueryHandler(start_cv_formal_entry, pattern="^btn_start_cv_formal$"),
+            CallbackQueryHandler(start_cv_remote_entry, pattern="^btn_start_cv_remote$"),
             CallbackQueryHandler(boost_apply_callback, pattern="^boost_apply_"),
+            MessageHandler(filters.Regex(f"^{re.escape(BTN_FORMAL_CV)}$"), start_cv_formal_entry),
+            MessageHandler(filters.Regex(f"^{re.escape(BTN_REMOTE_CV)}$"), start_cv_remote_entry),
             MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_CV)}$"), start_cv_entry)
         ],
         states={
@@ -3970,7 +4628,14 @@ def main():
         admin_filter = admin_filter & filters.User(user_id=int(ADMIN_ID))
     app.add_handler(MessageHandler(admin_filter, admin_text_input_handler), group=1)
 
-    # 3. Handlers de Usuario General
+    # 3. Handlers de Selección de Modo y Comandos Generales
+    app.add_handler(CommandHandler(['modo', 'cambiar', 'cambiarmodo', 'switch'], mode_command))
+    app.add_handler(CommandHandler(['tips', 'entrevistas', 'consejos'], formal_interview_tips_handler))
+    app.add_handler(CommandHandler(['faqs', 'salarios', 'preguntas'], formal_faqs_salary_handler))
+    app.add_handler(CallbackQueryHandler(set_mode_callback, pattern="^(set_mode_|btn_switch_to_)"))
+    app.add_handler(CallbackQueryHandler(formal_interview_tips_handler, pattern="^btn_formal_tips$"))
+    app.add_handler(CallbackQueryHandler(formal_faqs_salary_handler, pattern="^btn_formal_faqs$"))
+
     app.add_handler(CommandHandler('start', start))
     app.add_handler(CommandHandler(['boost', 'hacks', 'trampa', 'optimizar', 'cheat'], boost_menu_callback))
     app.add_handler(CommandHandler(['pack', 'referidos'], referrals_menu_callback))
@@ -3998,6 +4663,23 @@ def main():
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
 
     # 4. Handlers del Teclado Inferior Persistente (Dock Ergonómico)
+    # Modo Formal
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_FORMAL_TIPS)}$"), formal_interview_tips_handler))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_FORMAL_FAQS)}$"), formal_faqs_salary_handler))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_FORMAL_SWITCH_REMOTE)}$"), switch_to_remote_handler))
+
+    # Modo Remoto
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_REMOTE_SWITCH_FORMAL)}$"), switch_to_formal_handler))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_REMOTE_BOOST)}$"), boost_menu_callback))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_REMOTE_KIT)}$"), download_kit_callback))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_REMOTE_CHANNEL)}$"), channel_link_tracker_callback))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_REMOTE_GUIDE)}$"), guide_interviews_callback))
+
+    # Selección directa sin modo
+    app.add_handler(MessageHandler(filters.Regex(r"^📄 Modo 1: Hoja de Vida Formal$"), switch_to_formal_handler))
+    app.add_handler(MessageHandler(filters.Regex(r"^🚀 Modo 2: Empleos Remotos USD$"), switch_to_remote_handler))
+
+    # Compatibilidad histórica
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_BOOST)}$"), boost_menu_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_PACK)}$"), referrals_menu_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_CHANNEL)}$"), channel_link_tracker_callback))

@@ -701,9 +701,16 @@ async def referrals_menu_callback(update: Update, context: ContextTypes.DEFAULT_
     ]
 
     keyboard = []
-    if unlocked or count >= 2 or is_admin(user.id):
-        lines.append("🎉 **¡RECURSO DISPONIBLE!** Toca el botón de abajo para descargarlo en PDF:")
+    if is_admin(user.id):
+        lines.append("👑 **Modo Administrador:** Tienes acceso prioritario ilimitado para auditar y descargar el material:")
         keyboard.append([InlineKeyboardButton("📥 Descargar mi Pack Secreto en PDF", callback_data="btn_download_secret_pack")])
+        keyboard.append([InlineKeyboardButton("📲 Probar Compartir en Telegram", url=tg_share_url)])
+        keyboard.append([InlineKeyboardButton("💬 Probar Compartir en WhatsApp", url=wa_share_url)])
+    elif unlocked or count >= 2:
+        lines.append("🎉 **¡YA HAS DESBLOQUEADO ESTE RECURSO!** Toca el botón de abajo para descargarlo en PDF:")
+        keyboard.append([InlineKeyboardButton("📥 Descargar mi Pack Secreto en PDF", callback_data="btn_download_secret_pack")])
+        keyboard.append([InlineKeyboardButton("📲 Seguir Compartiendo en Telegram", url=tg_share_url)])
+        keyboard.append([InlineKeyboardButton("💬 Seguir Compartiendo en WhatsApp", url=wa_share_url)])
     else:
         faltan = max(0, 2 - count)
         lines.append(f"💡 *Comparte tu enlace con {faltan} amigo(s) más. En cuanto entren al bot, el documento se te enviará automáticamente.*")

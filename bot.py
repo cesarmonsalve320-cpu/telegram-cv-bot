@@ -79,6 +79,8 @@ SPONSOR_CHANNEL_URL = os.getenv('SPONSOR_CHANNEL_URL', 'https://t.me/empleosremo
 CHANNEL_USERNAME = '@empleosremotos_oficial'
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MINI_APP_URL = os.getenv('MINI_APP_URL', 'https://telegram-cv-bot-oqr6.onrender.com/app')
+MINI_APP_HTML_PATH = os.path.join(BASE_DIR, 'mini_app.html')
 
 # Kit Maestro PDF Path
 KIT_MAESTRO_PDF_PATH = os.path.join(BASE_DIR, 'Kit_Maestro_Empleo_Remoto_2026.pdf')
@@ -127,10 +129,10 @@ def get_main_reply_keyboard(user_id=None):
 # ========================================================
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # Servir Telegram Mini App en /app o /miniapp
-        if self.path.startswith('/app') or self.path.startswith('/miniapp'):
-            if os.path.exists(MINI_APP_HTML_PATH):
-                try:
+        try:
+            # Servir Telegram Mini App en /app o /miniapp
+            if self.path.startswith('/app') or self.path.startswith('/miniapp'):
+                if os.path.exists(MINI_APP_HTML_PATH):
                     with open(MINI_APP_HTML_PATH, 'rb') as f:
                         content = f.read()
                     self.send_response(200)
@@ -140,14 +142,25 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(content)
                     return
-                except Exception as e:
-                    logger.error(f"Error sirviendo mini_app.html: {e}")
+                else:
+                    self.send_response(404)
+                    self.send_header('Content-type', 'text/plain; charset=utf-8')
+                    self.end_headers()
+                    self.wfile.write(b"mini_app.html not found on server")
+                    return
 
-        # Healthcheck padrão para Render
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json; charset=utf-8')
-        self.end_headers()
-        self.wfile.write(b'{"status":"ok","service":"telegram-cv-bot","autopilot":"running"}')
+            # Healthcheck padrão para Render
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok","service":"telegram-cv-bot","autopilot":"running"}')
+        except Exception as e:
+            logger.error(f"Error en servidor HTTP: {e}")
+            try:
+                self.send_response(500)
+                self.end_headers()
+            except Exception:
+                pass
 
     def do_HEAD(self):
         self.send_response(200)

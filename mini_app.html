@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Diseñador de CV ATS de Élite • Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #0c0e12;
+      --bg-surface: #14171f;
+      --bg-surface-elevated: #1b202b;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: #3b82f6;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #2563eb;
+      --accent-blue-hover: #1d4ed8;
+      --accent-green: #10b981;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-tactile: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      padding: 16px 14px 32px;
+      line-height: 1.5;
+      font-size: 14px;
+      user-select: none;
+    }
+    .header { margin-bottom: 20px; text-align: center; padding: 12px 8px; }
+    .badge-pill {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+      border-radius: 999px; background: rgba(37, 99, 235, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa;
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    }
+    .header h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; color: var(--text-primary); margin-bottom: 4px; }
+    .header p { font-size: 12px; color: var(--text-secondary); max-width: 320px; margin: 0 auto; }
+    .section-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; }
+    .card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; }
+    .input-group { margin-bottom: 12px; }
+    .input-group:last-child { margin-bottom: 0; }
+    .input-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    .input-field {
+      width: 100%; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; color: var(--text-primary);
+      outline: none; transition: border-color 0.15s ease; font-family: inherit;
+    }
+    .input-field:focus { border-color: var(--border-focus); }
+    .category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 6px; }
+    .category-card {
+      background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm); padding: 10px 8px; cursor: pointer;
+      display: flex; flex-direction: column; gap: 2px; transition: all 0.15s ease; position: relative;
+    }
+    .category-card:active { transform: scale(0.98); }
+    .category-card.selected { border-color: var(--accent-blue); background: rgba(37, 99, 235, 0.12); }
+    .category-card.selected::after { content: '✓'; position: absolute; top: 6px; right: 6px; font-size: 11px; font-weight: 700; color: #60a5fa; }
+    .category-card .cat-icon { font-size: 16px; margin-bottom: 2px; }
+    .category-card .cat-title { font-size: 11.5px; font-weight: 700; color: var(--text-primary); }
+    .category-card .cat-desc { font-size: 9.5px; color: var(--text-muted); line-height: 1.2; }
+    .option-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+    .pill-option {
+      flex: 1; min-width: fit-content; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm); padding: 8px 10px; font-size: 11.5px; font-weight: 600;
+      color: var(--text-secondary); text-align: center; cursor: pointer; white-space: nowrap; transition: all 0.15s ease;
+    }
+    .pill-option.selected { border-color: var(--accent-blue); background: rgba(37, 99, 235, 0.15); color: #93c5fd; }
+    .preview-box { background: #0f1218; border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: var(--radius-sm); padding: 12px; margin-top: 10px; }
+    .preview-header { border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 8px; margin-bottom: 8px; }
+    .preview-name { font-family: 'Newsreader', serif; font-size: 16px; font-weight: 600; color: #f8fafc; }
+    .preview-meta { font-size: 10px; color: var(--text-muted); }
+    .preview-rule { font-size: 10px; color: #94a3b8; line-height: 1.4; font-style: italic; }
+    .btn-submit {
+      width: 100%; background: var(--accent-blue); color: #ffffff; border: none; border-radius: var(--radius-md);
+      padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-tactile);
+      transition: transform 0.1s ease; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 18px;
+    }
+    .btn-submit:active { transform: translateY(1px); background: var(--accent-blue-hover); }
+    .footer-note { text-align: center; font-size: 10.5px; color: var(--text-muted); margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="badge-pill">⚡ Telegram Mini App • Estándar Harvard</div>
+    <h1>Diseñador de CV ATS</h1>
+    <p>Compilación ejecutiva cuantitativa (Fórmula Google XYZ) lista para superar filtros corporativos.</p>
+  </div>
+  <div class="section-title">👤 1. Datos Personales</div>
+  <div class="card">
+    <div class="input-group">
+      <label for="inputName">Nombre Completo</label>
+      <input type="text" id="inputName" class="input-field" placeholder="Ej. Andrés Morales">
+    </div>
+    <div class="input-group">
+      <label for="inputEmail">Correo Electrónico Profesional</label>
+      <input type="email" id="inputEmail" class="input-field" placeholder="andres.morales@gmail.com">
+    </div>
+    <div class="input-group">
+      <label for="inputCountry">País de Residencia</label>
+      <input type="text" id="inputCountry" class="input-field" placeholder="Colombia, México, Argentina, Perú...">
+    </div>
+  </div>
+  <div class="section-title">🎯 2. Área / Industria Objetivo</div>
+  <div class="card">
+    <div class="category-grid" id="categoryGrid">
+      <div class="category-card selected" data-category="admin" data-title="Administración & Operaciones">
+        <span class="cat-icon">💼</span>
+        <span class="cat-title">Administración</span>
+        <span class="cat-desc">Asistente Ejecutivo, ERPs y Gestión</span>
+      </div>
+      <div class="category-card" data-category="sales" data-title="Ventas & Desarrollo Comercial">
+        <span class="cat-icon">📈</span>
+        <span class="cat-title">Ventas & B2B</span>
+        <span class="cat-desc">SDR, Cuentas y CRM (HubSpot/Salesforce)</span>
+      </div>
+      <div class="category-card" data-category="support" data-title="Servicio al Cliente & Soporte">
+        <span class="cat-icon">🎧</span>
+        <span class="cat-title">Customer Support</span>
+        <span class="cat-desc">Zendesk, Métricas CSAT y Soporte Bilingüe</span>
+      </div>
+      <div class="category-card" data-category="marketing" data-title="Marketing Digital & Redes">
+        <span class="cat-icon">📣</span>
+        <span class="cat-title">Marketing Digital</span>
+        <span class="cat-desc">Growth, Ads, SEO y Analítica Web</span>
+      </div>
+      <div class="category-card" data-category="finance" data-title="Finanzas, Contabilidad & Datos">
+        <span class="cat-icon">📊</span>
+        <span class="cat-title">Finanzas & Data</span>
+        <span class="cat-desc">Excel Avanzado, Conciliación y Auditoría</span>
+      </div>
+      <div class="category-card" data-category="tech" data-title="Tecnología & Soporte IT">
+        <span class="cat-icon">💻</span>
+        <span class="cat-title">Tecnología & IT</span>
+        <span class="cat-desc">Soporte Técnico, Infraestructura y Jira</span>
+      </div>
+      <div class="category-card" data-category="logistics" data-title="Logística & Compras">
+        <span class="cat-icon">📦</span>
+        <span class="cat-title">Logística & Compras</span>
+        <span class="cat-desc">Inventarios, Proveedores y Distribución</span>
+      </div>
+      <div class="category-card" data-category="ai" data-title="Evaluador de Modelos de IA">
+        <span class="cat-icon">🤖</span>
+        <span class="cat-title">Evaluador de IA</span>
+        <span class="cat-desc">Outlier, Remotasks y Calidad RLHF</span>
+      </div>
+    </div>
+  </div>
+  <div class="section-title">🌐 3. Competencia en Inglés</div>
+  <div class="card">
+    <div class="option-row" id="englishRow">
+      <div class="pill-option selected" data-english="eng_basic">🟢 Básico / Técnico</div>
+      <div class="pill-option" data-english="eng_intermediate">🟡 Intermedio (B1-B2)</div>
+      <div class="pill-option" data-english="eng_advanced">🔵 Bilingüe (C1-C2)</div>
+    </div>
+  </div>
+  <div class="section-title">⚡ 4. Nivel de Experiencia</div>
+  <div class="card">
+    <div class="option-row" id="expRow">
+      <div class="pill-option selected" data-exp="beginner">Junior / Inicial</div>
+      <div class="pill-option" data-exp="intermediate">Medio (2-4 años)</div>
+      <div class="pill-option" data-exp="expert">Senior (+5 años)</div>
+    </div>
+  </div>
+  <div class="section-title">👁️ Previsualización del Formato</div>
+  <div class="preview-box">
+    <div class="preview-header">
+      <div class="preview-name" id="prevName">TU NOMBRE COMPLETO</div>
+      <div class="preview-meta" id="prevMeta">Modalidad Remota / Presencial • Correo • Teléfono • LinkedIn</div>
+    </div>
+    <div class="preview-rule" id="prevSummary">
+      "Profesional con historial medible en optimización de procesos operativos, gestión de herramientas líderes del sector y enfoque riguroso en cumplimiento de objetivos cuantitativos..."
+    </div>
+  </div>
+  <button class="btn-submit" id="btnSubmit">
+    <span>📄 Compilar y Recibir CV en PDF</span>
+  </button>
+  <p class="footer-note">Garantía de legibilidad 100% en software ATS corporativo (Workday, Taleo, Greenhouse).</p>
+  <script>
+    const tg = window.Telegram ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      try { tg.headerColor = '#0c0e12'; tg.backgroundColor = '#0c0e12'; } catch (e) {}
+    }
+    let selectedCategory = 'admin';
+    let selectedCategoryTitle = 'Administración & Operaciones';
+    let selectedEnglish = 'eng_basic';
+    let selectedExp = 'beginner';
+
+    const catCards = document.querySelectorAll('.category-card');
+    catCards.forEach(card => {
+      card.addEventListener('click', () => {
+        catCards.forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedCategory = card.dataset.category;
+        selectedCategoryTitle = card.dataset.title;
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        updatePreview();
+      });
+    });
+
+    const englishPills = document.querySelectorAll('#englishRow .pill-option');
+    englishPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        englishPills.forEach(p => p.classList.remove('selected'));
+        pill.classList.add('selected');
+        selectedEnglish = pill.dataset.english;
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+      });
+    });
+
+    const expPills = document.querySelectorAll('#expRow .pill-option');
+    expPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        expPills.forEach(p => p.classList.remove('selected'));
+        pill.classList.add('selected');
+        selectedExp = pill.dataset.exp;
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+      });
+    });
+
+    const inputName = document.getElementById('inputName');
+    const inputEmail = document.getElementById('inputEmail');
+    const inputCountry = document.getElementById('inputCountry');
+    const prevName = document.getElementById('prevName');
+    const prevMeta = document.getElementById('prevMeta');
+
+    function updatePreview() {
+      const name = inputName.value.trim() || 'TU NOMBRE COMPLETO';
+      const country = inputCountry.value.trim() || 'Modalidad Remota';
+      const email = inputEmail.value.trim() || 'correo.profesional@gmail.com';
+      prevName.textContent = name.toUpperCase();
+      prevMeta.textContent = country + ' • ' + email + ' • ' + selectedCategoryTitle;
+    }
+
+    inputName.addEventListener('input', updatePreview);
+    inputEmail.addEventListener('input', updatePreview);
+    inputCountry.addEventListener('input', updatePreview);
+
+    document.getElementById('btnSubmit').addEventListener('click', () => {
+      const name = inputName.value.trim();
+      const email = inputEmail.value.trim();
+      const country = inputCountry.value.trim() || 'No especificado';
+      if (!name) {
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+        alert('Por favor escribe tu Nombre Completo.');
+        inputName.focus();
+        return;
+      }
+      if (!email || !email.includes('@')) {
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+        alert('Por favor escribe un Correo Electrónico válido.');
+        inputEmail.focus();
+        return;
+      }
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.notificationOccurred('success');
+      }
+      const payload = {
+        action: 'generate_cv',
+        name: name,
+        email: email,
+        country: country,
+        category: selectedCategory,
+        target_job: selectedCategoryTitle,
+        english: selectedEnglish,
+        exp_level: selectedExp
+      };
+      if (tg && tg.sendData) {
+        tg.sendData(JSON.stringify(payload));
+      } else {
+        alert('Datos preparados para el bot: ' + JSON.stringify(payload));
+      }
+    });
+  </script>
+</body>
+</html>

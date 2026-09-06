@@ -85,36 +85,34 @@ if not os.path.exists(KIT_MAESTRO_PDF_PATH):
     if os.path.exists(desktop_candidate):
         KIT_MAESTRO_PDF_PATH = desktop_candidate
 
-SUBSCRIBERS_FILE = os.path.join(os.path.dirname(__file__), 'subscribers.json')
-MONETIZATION_FILE = os.path.join(os.path.dirname(__file__), 'monetization.json')
-STATS_FILE = os.path.join(os.path.dirname(__file__), 'stats.json')
-REFERRALS_FILE = os.path.join(os.path.dirname(__file__), 'referrals.json')
-PACK_SECRETO_PDF_PATH = os.path.join(os.path.dirname(__file__), 'Pack_Secreto_Admision_Remota_2026.pdf')
 if not os.path.exists(PACK_SECRETO_PDF_PATH):
     desktop_candidate = os.path.join(os.path.expanduser('~'), 'Desktop', 'Pack_Secreto_Admision_Remota_2026.pdf')
     if os.path.exists(desktop_candidate):
         PACK_SECRETO_PDF_PATH = desktop_candidate
 
 # Banners Gráficos de Presentación Visual
-WELCOME_BANNER_PATH = os.path.join(os.path.dirname(__file__), 'banner_welcome.jpg')
-PACK_SECRETO_BANNER_PATH = os.path.join(os.path.dirname(__file__), 'banner_pack_secreto.jpg')
-KIT_MAESTRO_BANNER_PATH = os.path.join(os.path.dirname(__file__), 'banner_kit_maestro.jpg')
+WELCOME_BANNER_PATH = os.path.join(BASE_DIR, 'banner_welcome.jpg')
+PACK_SECRETO_BANNER_PATH = os.path.join(BASE_DIR, 'banner_pack_secreto.jpg')
+KIT_MAESTRO_BANNER_PATH = os.path.join(BASE_DIR, 'banner_kit_maestro.jpg')
 
 # Constantes de Botones del Teclado Inferior Persistente (Dock Ergonómico)
 BTN_BOTTOM_CV = "📄 Crear mi CV ATS"
+BTN_BOTTOM_MINI_APP = "🌐 Mini App CV"
 BTN_BOTTOM_PACK = "🎁 Refer & Earn (Pack)"
 BTN_BOTTOM_CHANNEL = "📢 Convocatorias USD"
 BTN_BOTTOM_KIT = "📥 Kit Maestro (PDF)"
 BTN_BOTTOM_GUIDE = "💡 Guía Entrevistas"
 BTN_BOTTOM_ATS = "❓ Auditoría ATS"
+BTN_BOTTOM_ALERTS = "🔔 Alertas Vacantes"
 BTN_BOTTOM_ADMIN = "👑 Panel de Administrador"
 
 def get_main_reply_keyboard(user_id=None):
-    """Genera el teclado táctil inferior persistente adaptado a ergonomía móvil."""
+    """Genera el teclado táctil inferior persistente adaptado a ergonomía móvil con Mini App integrada."""
     buttons = [
-        [KeyboardButton(BTN_BOTTOM_CV), KeyboardButton(BTN_BOTTOM_PACK)],
-        [KeyboardButton(BTN_BOTTOM_CHANNEL), KeyboardButton(BTN_BOTTOM_KIT)],
-        [KeyboardButton(BTN_BOTTOM_GUIDE), KeyboardButton(BTN_BOTTOM_ATS)]
+        [KeyboardButton(BTN_BOTTOM_CV), KeyboardButton(BTN_BOTTOM_MINI_APP, web_app=WebAppInfo(url=MINI_APP_URL))],
+        [KeyboardButton(BTN_BOTTOM_PACK), KeyboardButton(BTN_BOTTOM_CHANNEL)],
+        [KeyboardButton(BTN_BOTTOM_KIT), KeyboardButton(BTN_BOTTOM_GUIDE)],
+        [KeyboardButton(BTN_BOTTOM_ATS), KeyboardButton(BTN_BOTTOM_ALERTS)]
     ]
     if user_id and is_admin(user_id):
         buttons.append([KeyboardButton(BTN_BOTTOM_ADMIN)])
@@ -122,10 +120,27 @@ def get_main_reply_keyboard(user_id=None):
 
 
 # ========================================================
-# Servidor HTTP de Monitoreo / Keep-Alive (Cloud 24/7)
+# Servidor HTTP de Monitoreo / Keep-Alive y Mini App (Cloud 24/7)
 # ========================================================
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        # Servir Telegram Mini App en /app o /miniapp
+        if self.path.startswith('/app') or self.path.startswith('/miniapp'):
+            if os.path.exists(MINI_APP_HTML_PATH):
+                try:
+                    with open(MINI_APP_HTML_PATH, 'rb') as f:
+                        content = f.read()
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html; charset=utf-8')
+                    self.send_header('Content-Length', str(len(content)))
+                    self.send_header('Cache-Control', 'no-cache')
+                    self.end_headers()
+                    self.wfile.write(content)
+                    return
+                except Exception as e:
+                    logger.error(f"Error sirviendo mini_app.html: {e}")
+
+        # Healthcheck padrão para Render
         self.send_response(200)
         self.send_header('Content-type', 'application/json; charset=utf-8')
         self.end_headers()
@@ -930,14 +945,17 @@ async def check_dock_interrupt(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def start_cv_step_1(message, context) -> int:
     """Paso 1: Nombre y Correo Electrónico (El único texto libre obligatorio)."""
-    cancel_markup = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancelar y Volver al Menú", callback_data="btn_cancel_cv")]])
+    cancel_markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🌐 Diseñar en Mini App (Visual e In-App)", web_app=WebAppInfo(url=MINI_APP_URL))],
+        [InlineKeyboardButton("❌ Cancelar y Volver al Menú", callback_data="btn_cancel_cv")]
+    ])
     prompt = (
         "📋 **PASO 1 DE 6 • DATOS DE CONTACTO**\n"
         "`[██░░░░░░░░] 16% completado`\n"
         "───────────────────────────────────\n"
         "Escribe en un solo mensaje tu **Nombre Completo y Correo Electrónico**:\n\n"
         "*(Ejemplo: Carlos Gómez, carlos@gmail.com)*\n\n"
-        "*(Puedes escribir /cancel o tocar el botón de abajo para salir).* "
+        "*(O toca el botón de arriba para diseñarlo visualmente a pantalla completa en la Mini App).* "
     )
     await message.reply_text(prompt, parse_mode='Markdown', reply_markup=cancel_markup)
     return STEP_NAME
@@ -990,11 +1008,10 @@ async def handle_country_callback(update: Update, context: ContextTypes.DEFAULT_
     save_subscriber(update.effective_user, country=country_val)
 
     keyboard = [
-        [InlineKeyboardButton("🤖 Evaluador de IA (Outlier / DataAnnotation)", callback_data="job_ai")],
-        [InlineKeyboardButton("💼 Asistente Virtual Bilingüe (Virtual Latinos)", callback_data="job_va")],
-        [InlineKeyboardButton("🎧 Transcripción & Control Calidad (GoTranscript)", callback_data="job_transcription")],
-        [InlineKeyboardButton("📊 Gestión & Validación de Datos (Data Entry)", callback_data="job_dataentry")],
-        [InlineKeyboardButton("💬 Moderador de Contenidos & Seguridad", callback_data="job_moderator")],
+        [InlineKeyboardButton("💼 Administración & Operaciones", callback_data="job_admin"), InlineKeyboardButton("📈 Ventas & Comercial B2B", callback_data="job_sales")],
+        [InlineKeyboardButton("🎧 Customer Support & Bilingüe", callback_data="job_support"), InlineKeyboardButton("📣 Marketing Digital & Redes", callback_data="job_marketing")],
+        [InlineKeyboardButton("📊 Finanzas & Contabilidad", callback_data="job_finance"), InlineKeyboardButton("💻 Tecnología & Soporte IT", callback_data="job_tech")],
+        [InlineKeyboardButton("📦 Logística & Compras", callback_data="job_logistics"), InlineKeyboardButton("🤖 Evaluador de IA (Outlier)", callback_data="job_ai")],
         [InlineKeyboardButton("✍️ Escribir otro cargo manualmente", callback_data="job_custom")],
         [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
     ]
@@ -1005,7 +1022,8 @@ async def handle_country_callback(update: Update, context: ContextTypes.DEFAULT_
         "📋 **PASO 3 DE 6 • PERFIL OBJETIVO**\n"
         "`[██████░░░░] 50% completado`\n"
         "───────────────────────────────────\n"
-        "Selecciona la vacante a la que aspiras postularte:",
+        "Selecciona el área o cargo al que aspiras postularte:\n\n"
+        "*(Se estructurará bajo formato Harvard y fórmulas cuantitativas XYZ).* ",
         parse_mode='Markdown',
         reply_markup=reply_markup
     )
@@ -1020,6 +1038,13 @@ async def handle_target_callback(update: Update, context: ContextTypes.DEFAULT_T
     job_code = query.data.replace("job_", "")
 
     job_titles = {
+        "admin": "Especialista en Administración & Operaciones",
+        "sales": "Especialista en Ventas & Desarrollo Comercial B2B",
+        "support": "Especialista en Servicio al Cliente & Customer Support",
+        "marketing": "Especialista en Marketing Digital & Crecimiento",
+        "finance": "Analista Financiero & Contable",
+        "tech": "Especialista en Tecnología & Soporte IT",
+        "logistics": "Coordinador de Logística & Cadena de Suministro",
         "ai": "Evaluador de Modelos de Inteligencia Artificial (AI Trainer)",
         "va": "Asistente Virtual & Coordinador de Operaciones Remotas",
         "transcription": "Especialista en Transcripción y Edición de Contenido",
@@ -1263,8 +1288,232 @@ def generate_elite_cv_data(user_data):
 
     contact_line = f"{country} • {email} • LinkedIn / Perfil Profesional • {english}"
 
-    # Plantilla Ejecutiva para EVALUADOR DE IA (Outlier / DataAnnotation)
-    if category == "ai" or "ia" in target.lower() or "outlier" in target.lower() or "dataannotation" in target.lower():
+    # 1. Plantilla Ejecutiva: ADMINISTRACIÓN & OPERACIONES
+    if category == "admin" or "admin" in target.lower() or "operacion" in target.lower() or "asistente" in target.lower():
+        summary = (
+            f"Profesional en Gestión Administrativa y Optimización Operativa con sólida competencia en coordinación interfuncional, "
+            f"administración de sistemas ERP (SAP, QuickBooks), gestión documental y control presupuestario bajo acuerdos de servicio (SLA). "
+            f"Capacidad comprobada para estandarizar procesos, reducir costos operativos y mantener un 99% de precisión en reportería ejecutiva."
+        )
+        experience = [
+            {
+                "role": "Coordinador de Operaciones Administrativas & Gestión Documental",
+                "company": "Servicios Corporativos & Gestión Empresarial / Modalidad Remota",
+                "period": "2022 - Presente",
+                "bullets": [
+                    "Supervisión y optimización de flujos operativos para 4 unidades de negocio, reduciendo tiempos de trámite y archivo en un 32%.",
+                    "Administración de órdenes de compra y conciliación de facturas comerciales mediante ERP (SAP / QuickBooks) con un volumen mensual de $45,000 USD.",
+                    "Coordinación de agendas directivas, minutas ejecutivas y logística corporativa para más de 6 líderes de área sin solapamientos."
+                ]
+            },
+            {
+                "role": "Asistente Ejecutivo y de Control Operativo",
+                "company": "Servicios Profesionales de Gestión",
+                "period": "2020 - 2022",
+                "bullets": [
+                    "Estandarización de bases de datos internas en Google Workspace y Notion, facilitando el acceso a expedientes a más de 80 colaboradores.",
+                    "Atención y resolución ágil de más de 60 requerimientos administrativos semanales con un índice de cumplimiento del 98.8%."
+                ]
+            }
+        ]
+        skills_tech = "Gestión de ERPs (SAP, QuickBooks), Control Presupuestario, Flujos de Trabajo Administrativos, Auditoría Documental"
+        skills_tools = "Microsoft Excel Avanzado (Tablas Dinámicas, BuscarX), SAP, Google Workspace, Notion, Trello, Slack"
+        skills_soft = "Liderazgo organizativo, Comunicación asertiva, Negociación con proveedores, Meticulosidad y ética"
+
+    # 2. Plantilla Ejecutiva: VENTAS & DESARROLLO COMERCIAL B2B
+    elif category == "sales" or "venta" in target.lower() or "comercial" in target.lower() or "sdr" in target.lower() or "b2b" in target.lower():
+        summary = (
+            f"Especialista en Desarrollo Comercial B2B y Cierre de Ventas con historial demostrado en prospección estratégica, "
+            f"calificación de oportunidades (SDR/BDR) y aceleración de ciclos de conversión. Avanzado dominio de plataformas CRM (Salesforce, HubSpot), "
+            f"metodologías de venta consultiva (SPIN Selling) y nutrición de pipelines. Supera cuotas de prospección en más de un 115% de manera consistente."
+        )
+        experience = [
+            {
+                "role": "Especialista en Desarrollo de Ventas B2B & Prospección Comercial",
+                "company": "Soluciones Comerciales & Expansión B2B / Remoto",
+                "period": "2022 - Presente",
+                "bullets": [
+                    "Prospección multicanal (LinkedIn Sales Navigator, cold email y llamadas) generando más de 35 demostraciones calificadas (SQLs) mensuales.",
+                    "Superación sistemática de cuotas trimestrales en un 118%, aportando más de $120,000 USD en nuevo volumen de facturación anual.",
+                    "Gestión y saneamiento riguroso del pipeline comercial en Salesforce y HubSpot, manteniendo una precisión de forecast superior al 93%."
+                ]
+            },
+            {
+                "role": "Ejecutivo de Cuentas y Atención Comercial",
+                "company": "Distribución Comercial & Servicios",
+                "period": "2020 - 2022",
+                "bullets": [
+                    "Negociación y fidelización de cartera de más de 65 clientes corporativos, logrando una tasa de retención interanual del 91%.",
+                    "Diseño de propuestas comerciales personalizadas y seguimiento postventa reduciendo tiempos de cierre en 12 días hábiles."
+                ]
+            }
+        ]
+        skills_tech = "Prospección B2B, Calificación de Oportunidades (BANT/MEDDIC), Gestión de Pipeline, Venta Consultiva"
+        skills_tools = "Salesforce, HubSpot CRM, LinkedIn Sales Navigator, Outreach, ZoomInfo, Slack, Google Sheets"
+        skills_soft = "Persuasión estratégica, Resiliencia comercial, Escucha activa, Negociación de alto impacto"
+
+    # 3. Plantilla Ejecutiva: SERVICIO AL CLIENTE & CUSTOMER SUPPORT
+    elif category == "support" or "soporte" in target.lower() or "cliente" in target.lower() or "customer" in target.lower():
+        summary = (
+            f"Especialista en Servicio al Cliente y Soporte Multicanal con enfoque en fidelización de usuarios, resolución en primer contacto (FCR) "
+            f"y gestión rigurosa de tickets bajo estándares internacionales. Sólida experiencia en plataformas de mesa de ayuda (Zendesk, Freshdesk, Intercom), "
+            f"atención de clientes bilingües y cumplimiento de acuerdos de nivel de servicio (SLA). Mantiene de forma constante un CSAT superior al 98%."
+        )
+        experience = [
+            {
+                "role": "Especialista en Atención al Cliente & Soporte Multicanal",
+                "company": "Plataforma de Servicios Digitales / Modalidad Remota",
+                "period": "2022 - Presente",
+                "bullets": [
+                    "Atención y resolución de más de 85 solicitudes diarias vía chat en vivo, correo y telefonía IP con un índice CSAT promedio del 98.4%.",
+                    "Reducción del tiempo medio de resolución (TTR) de 45 a 18 minutos mediante la redacción de macros y plantillas estandarizadas en Zendesk.",
+                    "Cumplimiento del 99.2% de los SLAs corporativos y escalamiento documentado de casos técnicos al equipo de ingeniería."
+                ]
+            },
+            {
+                "role": "Representante de Atención y Fidelización de Usuarios",
+                "company": "Centro de Contacto & Servicios al Consumidor",
+                "period": "2020 - 2022",
+                "bullets": [
+                    "Gestión de reclamos complejos y retención de usuarios con una tasa de éxito del 88% en prevención de cancelaciones.",
+                    "Registro detallado de incidencias en CRM para detección temprana de fallas operativas en productos y servicios."
+                ]
+            }
+        ]
+        skills_tech = "Resolución en Primer Contacto (FCR), Gestión de SLAs, Manejo de Conflictos, Métricas CSAT / NPS"
+        skills_tools = "Zendesk, Freshdesk, Intercom, Salesforce Service Cloud, Aircall, Slack, Google Workspace"
+        skills_soft = "Empatía asertiva, Comunicación clara bajo presión, Paciencia, Orientación al usuario"
+
+    # 4. Plantilla Ejecutiva: MARKETING DIGITAL, GROWTH & REDES SOCIALES
+    elif category == "marketing" or "marketing" in target.lower() or "redes" in target.lower() or "growth" in target.lower():
+        summary = (
+            f"Especialista en Marketing Digital, Estrategia de Contenidos y Growth Marketing con competencia probada en adquisición de audiencias, "
+            f"gestión de pauta publicitaria (Meta Ads, Google Ads) y optimización de conversión (CRO). Experiencia en analítica web (Google Analytics 4), "
+            f"estrategia SEO para posicionamiento orgánico y diseño de embudos de venta. Logra incrementar el tráfico web calificado en más de un 45%."
+        )
+        experience = [
+            {
+                "role": "Especialista en Marketing Digital & Crecimiento de Audiencia",
+                "company": "Agencia Digital & Comercio Electrónico / Modalidad Remota",
+                "period": "2022 - Presente",
+                "bullets": [
+                    "Planificación y ejecución de campañas de pauta digital en Meta Ads y Google Ads con presupuesto mensual de $12,000 USD y ROAS promedio de 3.8x.",
+                    "Diseño e implementación de estrategia SEO on-page y técnica, aumentando el tráfico orgánico indexado en un 48% interanual.",
+                    "Crecimiento de comunidades en redes sociales en más de 35,000 seguidores con una tasa de interacción (engagement) sostenida del 4.2%."
+                ]
+            },
+            {
+                "role": "Coordinador de Contenidos y Canales Digitales",
+                "company": "Comercio & Medios Digitales",
+                "period": "2020 - 2022",
+                "bullets": [
+                    "Creación de calendarios editoriales, redacción de copys persuasivos y producción de piezas gráficas alineadas a la identidad de marca.",
+                    "Automatización de secuencias de email marketing mediante Mailchimp con tasas de apertura superiores al 29%."
+                ]
+            }
+        ]
+        skills_tech = "SEO / SEM, Publicidad Digital (Meta/Google Ads), Analítica de Conversión (GA4), Inbound Marketing"
+        skills_tools = "Google Analytics 4, Meta Ads Manager, Google Ads, Semrush, Mailchimp, WordPress, Canva Pro"
+        skills_soft = "Pensamiento creativo, Análisis de métricas, Adaptabilidad rápida a tendencias, Autonomía ejecutiva"
+
+    # 5. Plantilla Ejecutiva: FINANZAS, CONTABILIDAD & ANÁLISIS DE DATOS
+    elif category == "finance" or "finanza" in target.lower() or "contab" in target.lower() or "data" in target.lower():
+        summary = (
+            f"Profesional en Finanzas y Contabilidad con amplia experiencia en conciliaciones bancarias masivas, análisis de estados financieros, "
+            f"facturación electrónica y control presupuestario. Avanzado dominio de modelos financieros en Excel (Macros VBA, Power Query), "
+            f"sistemas ERP (SAP, QuickBooks, Xero) y elaboración de reportes de rentabilidad para la toma de decisiones directivas. Rigor del 100% en auditorías."
+        )
+        experience = [
+            {
+                "role": "Analista Financiero & Contable Senior",
+                "company": "Servicios Financieros & Consultoría Contable / Remoto",
+                "period": "2022 - Presente",
+                "bullets": [
+                    "Conciliación bancaria y comercial de más de 1,200 transacciones mensuales multidivisa (USD, EUR, moneda local), reduciendo discrepancias al 0.4%.",
+                    "Elaboración de estados financieros mensuales (Balance General, PyG, Flujo de Caja) y modelos de proyección presupuestaria para junta directiva.",
+                    "Automatización de reportes contables mediante Power Query y fórmulas avanzadas de Excel, ahorrando 14 horas de labor manual semanal."
+                ]
+            },
+            {
+                "role": "Asistente Contable y de Facturación",
+                "company": "Organización Comercial & Servicios",
+                "period": "2020 - 2022",
+                "bullets": [
+                    "Gestión y emisión de facturación electrónica, registro de cuentas por cobrar y gestión de cobranza oportuna con 95% de efectividad.",
+                    "Preparación y revisión de documentación soporte para declaraciones tributarias y auditorías fiscales anuales."
+                ]
+            }
+        ]
+        skills_tech = "Conciliaciones Bancarias, Modelado Financiero, Cierres Contables, Análisis de Flujo de Caja, Auditoría Fiscal"
+        skills_tools = "Microsoft Excel Avanzado (Power Query, Macros), SAP FI/CO, QuickBooks, Xero, Power BI, Google Sheets"
+        skills_soft = "Pensamiento analítico crítico, Máxima precisión numérica, Ética profesional inquebrantable, Confidencialidad"
+
+    # 6. Plantilla Ejecutiva: TECNOLOGÍA, SOPORTE IT & PROGRAMACIÓN
+    elif category == "tech" or "tecnolog" in target.lower() or "it" in target.lower() or "desarrollo" in target.lower() or "program" in target.lower():
+        summary = (
+            f"Especialista en Tecnología de la Información y Soporte Técnico con experiencia sólida en administración de infraestructura digital, "
+            f"soporte a usuarios L1/L2, automatización de tareas y gestión de accesos bajo marco ITIL. Competente en administración de entornos cloud "
+            f"(Google Workspace, Microsoft 365 / Azure AD), gestión de incidencias en Jira y scripts de automatización (Python/Bash). 96.5% de satisfacción."
+        )
+        experience = [
+            {
+                "role": "Especialista en Soporte de TI & Operaciones Técnicas",
+                "company": "Servicios de Tecnología & Infraestructura Digital / Remoto",
+                "period": "2022 - Presente",
+                "bullets": [
+                    "Diagnóstico y resolución de más de 120 incidencias técnicas mensuales (hardware, software, redes y accesos) con 96.5% de satisfacción de usuarios.",
+                    "Administración de usuarios, licencias y políticas de seguridad en Google Workspace y Microsoft 365 / Azure AD para más de 200 colaboradores remotos.",
+                    "Desarrollo de scripts de automatización en Python y Bash para aprovisionamiento de cuentas y respaldos de bases de datos, reduciendo tiempos en 40%."
+                ]
+            },
+            {
+                "role": "Técnico de Mesa de Ayuda (Help Desk) y Redes",
+                "company": "Soluciones Corporativas de Telecomunicaciones",
+                "period": "2020 - 2022",
+                "bullets": [
+                    "Monitoreo de disponibilidad de servidores y conectividad VPN, reportando y mitigando fallas con tiempos de respuesta menores a 10 minutos.",
+                    "Instalación, configuración y mantenimiento preventivo de equipos y estaciones de trabajo."
+                ]
+            }
+        ]
+        skills_tech = "Soporte L1/L2, Administración de Azure AD / Google Workspace, Redes y VPNs, Metodología ITIL, Ciberseguridad"
+        skills_tools = "Jira Service Management, Confluence, Python, Bash, Windows/Linux Server, Docker básico, Git"
+        skills_soft = "Diagnóstico lógico y deductivo, Comunicación técnica clara, Trabajo en equipo multidisciplinario, Proactividad"
+
+    # 7. Plantilla Ejecutiva: LOGÍSTICA, COMPRAS & CADENA DE SUMINISTRO
+    elif category == "logistics" or "logist" in target.lower() or "compras" in target.lower() or "supply" in target.lower():
+        summary = (
+            f"Coordinador de Logística, Compras y Cadena de Suministro con experiencia comprobada en gestión de inventarios, negociación con proveedores, "
+            f"coordinación de transporte y reducción sistemática de costos operativos. Sólido manejo de sistemas WMS, módulos ERP (SAP MM/SD) "
+            f"y modelado de reaprovisionamiento en Excel. Mantiene exactitud de inventario superior al 99.2% y reduce tiempos de entrega en 2 días hábiles."
+        )
+        experience = [
+            {
+                "role": "Coordinador de Logística, Aprovisionamiento & Cadena de Suministro",
+                "company": "Operador Logístico & Comercio Internacional / Modalidad Remota",
+                "period": "2022 - Presente",
+                "bullets": [
+                    "Negociación y gestión de acuerdos comerciales con más de 35 proveedores nacionales e internacionales, logrando un ahorro del 14% en costos de compras.",
+                    "Control y supervisión de inventarios para más de 4,000 SKUs manteniendo un índice de exactitud de stock (IRA) superior al 99.2%.",
+                    "Optimización de rutas de distribución y monitoreo de despachos de última milla, reduciendo tiempos de tránsito en 2 días hábiles."
+                ]
+            },
+            {
+                "role": "Analista de Inventarios y Gestión de Compras",
+                "company": "Distribución Comercial y Logística",
+                "period": "2020 - 2022",
+                "bullets": [
+                    "Emisión y seguimiento de órdenes de compra, control de tiempos de entrega (lead times) y evaluación periódica del desempeño de proveedores.",
+                    "Generación de reportes semanales de rotación de stock y mermas para la gerencia de operaciones."
+                ]
+            }
+        ]
+        skills_tech = "Gestión de Cadena de Suministro, Control de Inventarios (ABC/Just In Time), Negociación de Compras, WMS"
+        skills_tools = "SAP (MM/SD), Excel Avanzado para Logística, ERPs de Comercio, Trello, Google Sheets, Slack"
+        skills_soft = "Visión estratégica de procesos, Negociación bajo presión, Organización meticulosa, Orientación a eficiencia"
+
+    # 8. Plantilla Ejecutiva para EVALUADOR DE IA (Outlier / DataAnnotation)
+    elif category == "ai" or "ia" in target.lower() or "outlier" in target.lower() or "dataannotation" in target.lower():
         summary = (
             f"Profesional analítico y meticuloso especializado en evaluación de respuestas para Modelos de Lenguaje Grande (LLMs) "
             f"y calibración de datos de inteligencia artificial. Sólida competencia en validación de restricciones negativas complejas, "
@@ -1296,101 +1545,37 @@ def generate_elite_cv_data(user_data):
         skills_tools = "Google Workspace (Docs, Sheets), Slack, Notion, Trello, Jira, Herramientas de Etiquetado y Análisis de Datos"
         skills_soft = "Pensamiento crítico, Atención exhaustiva al detalle, Comunicación asertiva remota, Gestión eficiente del tiempo"
 
-    # Plantilla Ejecutiva para ASISTENTE VIRTUAL (Virtual Latinos)
-    elif category == "va" or "asistente" in target.lower() or "virtual" in target.lower():
-        summary = (
-            f"Asistente Virtual proactivo y bilingüe con sólida experiencia en coordinación operativa, atención al cliente "
-            f"y gestión administrativa remota. Competencia comprobada en optimización de flujos de trabajo en la nube, manejo de correspondencia corporativa "
-            f"y organización de agendas ejecutivas. Orientado a la resolución autónoma de problemas y a la fidelización de clientes internacionales."
-        )
-        experience = [
-            {
-                "role": "Coordinador de Operaciones Remotas & Asistente Ejecutivo",
-                "company": "Servicios Administrativos y Soporte Digital / Remoto",
-                "period": "2022 - Presente",
-                "bullets": [
-                    "Gestión de correspondencia corporativa, programación de reuniones ejecutivas y atención oportuna a más de 65 requerimientos semanales con 100% de cumplimiento en plazos.",
-                    "Implementación de sistemas de archivo digital y bases de datos en Google Drive y Notion, reduciendo tiempos de búsqueda documental en un 25%.",
-                    "Redacción de reportes operativos semanales y comunicación fluida con clientes y equipos multidisciplinarios en español e inglés."
-                ]
-            },
-            {
-                "role": "Especialista en Atención al Cliente y Gestión de Solicitudes",
-                "company": "Comercio & Servicios Profesionales",
-                "period": "2020 - 2022",
-                "bullets": [
-                    "Atención y resolución ágil de consultas mediante canales digitales (correo, mensajería instantánea y telefonía IP), manteniendo un índice de satisfacción del 98%.",
-                    "Manejo de herramientas de facturación, seguimiento de pagos y control de inventarios administrativos."
-                ]
-            }
-        ]
-        skills_tech = "Gestión de agendas ejecutivas, Redacción corporativa bilingüe, Control de correspondencia, Soporte al cliente"
-        skills_tools = "Google Workspace (Docs, Sheets, Drive), Slack, Zoom, Trello, Asana, Notion, CRM Básico"
-        skills_soft = "Organización meticulosa, Proactividad, Resolución de conflictos, Confidencialidad y ética profesional"
-
-    # Plantilla Ejecutiva para TRANSCRIPCIÓN (GoTranscript)
-    elif category == "transcription" or "transcri" in target.lower() or "audio" in target.lower():
-        summary = (
-            f"Especialista en transcripción, edición ortotipográfica y procesamiento de material audiovisual en español nativo. "
-            f"Destacada agilidad de digitación (más de 65 palabras por minuto), oído agudo para acentos regionales y aplicación rigurosa de normas de estilo. "
-            f"Experiencia en verificación de terminología técnica y entrega puntual de transcripciones con un 99% de exactitud."
-        )
-        experience = [
-            {
-                "role": "Transcriptor y Revisor Ortotipográfico de Contenidos",
-                "company": "Proyectos Digitales & Servicios Audiovisuales / Remoto",
-                "period": "2022 - Presente",
-                "bullets": [
-                    "Transcripción literal y limpia de audios, conferencias y entrevistas, asegurando fidelidad acústica y cumplimiento estricto de guías de estilo.",
-                    "Edición y corrección de sintaxis, puntuación y ortografía en más de 25 horas de grabación mensuales con índice de error menor al 1%.",
-                    "Sincronización de marcas temporales (timestamps) y subtitulación para formatos audiovisuales corporativos."
-                ]
-            },
-            {
-                "role": "Asistente de Documentación y Digitalización de Datos",
-                "company": "Servicios Corporativos / Modalidad Remota",
-                "period": "2020 - 2022",
-                "bullets": [
-                    "Conversión y formateo sistemático de archivos de audio y texto físico a documentación digital estandarizada.",
-                    "Control de calidad de archivos finales previo a su distribución a clientes internos."
-                ]
-            }
-        ]
-        skills_tech = "Transcripción limpia y literal, Corrección ortotipográfica, Subtitulado, Verificación terminológica"
-        skills_tools = "Software de reproducción con atajos (Express Scribe), Google Docs, Word, Herramientas de audio digital"
-        skills_soft = "Concentración sostenida, Agilidad de digitación, Atención al detalle, Entrega puntual bajo presión"
-
-    # Plantilla General Adaptativa
+    # 9. Plantilla General Adaptativa para Cargo Personalizado
     else:
         summary = (
-            f"Profesional orientado al cumplimiento de objetivos con sólida competencia en tareas clave de {target}. "
-            f"Experiencia contrastada en administración de información, resolución sistemática de contingencias y comunicación efectiva en entornos colaborativos remotos. "
-            f"Comprometido con los más altos estándares de calidad, confidencialidad y productividad continua."
+            f"Profesional altamente competente y orientado al cumplimiento de objetivos con sólida trayectoria en responsabilidades clave de {target}. "
+            f"Experiencia contrastada en optimización de procesos, gestión de información cuantitativa y coordinación eficiente en entornos de trabajo modernos. "
+            f"Capacidad demostrada para superar indicadores clave de rendimiento (KPIs), aplicar rigor metodológico y aportar valor tangible a la organización."
         )
         experience = [
             {
-                "role": f"Especialista en Operaciones & Gestión - {target}",
-                "company": "Servicios Profesionales / Modalidad Remota",
+                "role": f"Especialista en Gestión y Desarrollo Profesional - {target}",
+                "company": "Servicios Profesionales & Proyectos / Modalidad Remota o Presencial",
                 "period": "2023 - Presente",
                 "bullets": [
-                    f"Ejecución de actividades prioritarias alineadas a las métricas de desempeño para {target}, asegurando 100% de cumplimiento en plazos.",
-                    "Análisis y procesamiento de requerimientos operativos con un índice de precisión superior al 98.5%.",
-                    "Coordinación interfuncional mediante plataformas de trabajo colaborativo en la nube (Google Workspace, Slack, Trello)."
+                    f"Planificación y ejecución de tareas prioritarias alineadas a las métricas de rendimiento para {target}, asegurando 100% de cumplimiento en plazos.",
+                    "Análisis y procesamiento de requerimientos con un índice de precisión superior al 98.5%, optimizando flujos de trabajo en un 24%.",
+                    "Coordinación interfuncional mediante plataformas de trabajo colaborativo en la nube (Google Workspace, Slack, Trello, Notion)."
                 ]
             },
             {
-                "role": "Asistente Operativo y de Soporte Administrativo",
+                "role": "Asistente Operativo y de Soporte Especializado",
                 "company": "Organización Comercial & Servicios",
                 "period": "2021 - 2023",
                 "bullets": [
-                    "Digitalización, verificación y archivo sistemático de información corporativa relevante.",
-                    "Atención y seguimiento oportuno a solicitudes internas y externas garantizando respuestas de calidad."
+                    "Estandarización de bases de datos y archivo sistemático de información corporativa relevante con apego a normas de calidad.",
+                    "Atención y seguimiento oportuno a solicitudes internas y externas garantizando tiempos de respuesta menores a 24 horas."
                 ]
             }
         ]
-        skills_tech = f"Gestión operativa para {target}, Análisis de datos, Redacción estructurada, Organización de información"
-        skills_tools = "Google Workspace, Microsoft 365, Slack, Trello, Zoom, Plataformas Cloud"
-        skills_soft = "Responsabilidad remota, Comunicación asertiva, Aprendizaje ágil, Orientación a resultados"
+        skills_tech = f"Gestión estratégica para {target}, Análisis de datos, Planificación de flujos operativos, Control de calidad"
+        skills_tools = "Google Workspace, Microsoft 365, Slack, Trello, Zoom, Plataformas Cloud de Gestión"
+        skills_soft = "Responsabilidad ejecutiva, Comunicación asertiva, Aprendizaje ágil, Orientación a resultados medibles"
 
     return {
         "name": name,
@@ -1840,6 +2025,134 @@ async def execute_channel_publish(target_text: str, context: ContextTypes.DEFAUL
 
 
 
+def save_subscribers_data(subscribers):
+    """Guarda el diccionario de suscriptores en disco con persistencia segura."""
+    try:
+        with open(SUBSCRIBERS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(subscribers, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"Error guardando suscriptores: {e}")
+
+
+async def dispatch_segmented_job_alerts(job: dict, application) -> int:
+    """Envía notificaciones push privadas y segmentadas a los suscriptores según perfil o interés."""
+    subscribers = load_subscribers()
+    if not subscribers:
+        return 0
+
+    job_title = job.get('title', 'Nueva Convocatoria Remota')
+    bot_user = "creadordecv_bot"
+    try:
+        me = await application.bot.get_me()
+        if me and me.username:
+            bot_user = me.username
+    except Exception:
+        pass
+
+    bot_cv_url = f"https://t.me/{bot_user}?start=cv"
+
+    keyboard = [
+        [InlineKeyboardButton("📄 Armar mi CV para esta Vacante", url=bot_cv_url)],
+        [InlineKeyboardButton("🚀 Ver Convocatoria en Canal", url=SPONSOR_CHANNEL_URL)],
+        [InlineKeyboardButton("🔕 Pausar Mis Alertas", callback_data="btn_toggle_alerts")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    alert_msg = (
+        "🔔 **ALERTA DE VACANTE PARA TU PERFIL**\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"Se acaba de abrir una nueva convocatoria en el canal:\n\n"
+        f"📌 **{job_title}**\n"
+        "💼 **Modalidad:** 100% Remoto Internacional (Pago en USD)\n\n"
+        "*(Cupos de admisión sujetos a filtros de cada plataforma).* \n\n"
+        "👇 Toca abajo para generar tu CV adaptado o postularte:"
+    )
+
+    sent_count = 0
+    for uid_str, user_info in subscribers.items():
+        try:
+            if user_info.get('alerts_enabled') is False:
+                continue
+
+            user_chat_id = int(uid_str)
+            if user_chat_id < 0:
+                continue
+
+            await application.bot.send_message(
+                chat_id=user_chat_id,
+                text=alert_msg,
+                parse_mode='Markdown',
+                reply_markup=reply_markup
+            )
+            sent_count += 1
+            await asyncio.sleep(0.04)  # Throttling seguro contra rate limits
+        except TelegramError as te:
+            err_str = str(te).lower()
+            if "blocked" in err_str or "user is deactivated" in err_str:
+                user_info['alerts_enabled'] = False
+            continue
+        except Exception:
+            continue
+
+    save_subscribers_data(subscribers)
+    logger.info(f"🔔 Alertas push enviadas a {sent_count} suscriptores para '{job_title}'.")
+    return sent_count
+
+
+async def toggle_alerts_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Permite al usuario activar o pausar sus alertas de vacantes."""
+    query = update.callback_query
+    user = update.effective_user
+    if not user:
+        return
+
+    subscribers = load_subscribers()
+    uid_str = str(user.id)
+    user_info = subscribers.get(uid_str, {})
+    current_status = user_info.get('alerts_enabled', True)
+    new_status = not current_status
+
+    user_info['alerts_enabled'] = new_status
+    subscribers[uid_str] = user_info
+    save_subscribers_data(subscribers)
+
+    status_text = "ACTIVADAS 🟢" if new_status else "PAUSADAS 🔴"
+    info_text = (
+        f"⚙️ **Tus Alertas de Vacantes están ahora: {status_text}**\n\n"
+        f"{'Recibirás avisos privados automáticos cada vez que se publiquen vacantes en el canal oficial.' if new_status else 'Ya no recibirás alertas push privadas al chat. Puedes reactivarlas cuando quieras tocando el botón abajo o con /alertas.'}"
+    )
+
+    kb = [[InlineKeyboardButton(f"{'🔕 Pausar Alertas' if new_status else '🔔 Activar Alertas'}", callback_data="btn_toggle_alerts")]]
+    if query:
+        await query.answer(f"Alertas {status_text}")
+        await safe_edit_text(query, info_text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(kb))
+    elif update.message:
+        await update.message.reply_text(info_text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(kb))
+
+
+async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Procesa los datos enviados desde la Telegram Mini App y compila el CV al instante."""
+    try:
+        raw_data = update.message.web_app_data.data
+        data = json.loads(raw_data)
+        if data.get('action') == 'generate_cv':
+            context.user_data['name'] = data.get('name', 'CANDIDATO PROFESIONAL')
+            context.user_data['email'] = data.get('email', 'contacto.profesional@gmail.com')
+            context.user_data['country'] = data.get('country', 'Modalidad Remota')
+            context.user_data['job_category'] = data.get('category', 'admin')
+            context.user_data['target_job'] = data.get('target_job', 'Especialista en Administración & Operaciones')
+            context.user_data['english_level'] = data.get('english', 'eng_basic')
+            context.user_data['exp_level'] = data.get('exp_level', 'beginner')
+            context.user_data['education'] = 'Formación Universitaria / Técnica Completa'
+            context.user_data['custom_exp_text'] = ''
+
+            save_subscriber(update.effective_user, country=context.user_data['country'], target_job=context.user_data['target_job'])
+            await generate_and_send_final_cv(update.message, update.effective_user, context)
+    except Exception as e:
+        logger.error(f"Error procesando web_app_data: {e}", exc_info=True)
+        await update.message.reply_text("⚠️ Ocurrió un inconveniente al procesar los datos de la Mini App. Puedes iniciar por chat con /cv.")
+
+
 async def publish_autopilot_next_job(application) -> tuple[bool, str]:
     """Publica la siguiente vacante del catálogo de piloto automático en el canal oficial."""
     state = load_autopilot_state()
@@ -1879,6 +2192,9 @@ async def publish_autopilot_next_job(application) -> tuple[bool, str]:
         state["last_post"] = datetime.now().isoformat()
         state["current_index"] = (current_idx + 1) % len(catalog)
         save_autopilot_state(state)
+
+        # Despachar alertas push privadas segmentadas a los suscriptores
+        asyncio.create_task(dispatch_segmented_job_alerts(job, application))
 
         return True, f"Vacante #{current_idx + 1} '{job['title']}' publicada (Msg ID: {sent_message.message_id})"
     except TelegramError as te:
@@ -2874,6 +3190,7 @@ def main():
     app.add_handler(CommandHandler(['pack', 'referidos'], referrals_menu_callback))
     app.add_handler(CommandHandler('kit', download_kit_callback))
     app.add_handler(CommandHandler('guia', guide_interviews_callback))
+    app.add_handler(CommandHandler('alertas', toggle_alerts_callback))
     app.add_handler(CommandHandler('stats', stats_command))
     app.add_handler(CommandHandler('broadcast', broadcast_command))
     app.add_handler(CommandHandler('cancel', cancel))
@@ -2885,6 +3202,10 @@ def main():
     app.add_handler(CallbackQueryHandler(why_ats_callback, pattern="^btn_why_ats$"))
     app.add_handler(CallbackQueryHandler(download_kit_callback, pattern="^btn_download_kit$"))
     app.add_handler(CallbackQueryHandler(guide_interviews_callback, pattern="^btn_guide_interviews$"))
+    app.add_handler(CallbackQueryHandler(toggle_alerts_callback, pattern="^btn_toggle_alerts$"))
+
+    # Mini App WebApp Data Handler (procesa envíos del formulario interactivo de la Mini App)
+    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
 
     # 4. Handlers del Teclado Inferior Persistente (Dock Ergonómico)
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_PACK)}$"), referrals_menu_callback))
@@ -2892,6 +3213,7 @@ def main():
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_KIT)}$"), download_kit_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_GUIDE)}$"), guide_interviews_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_ATS)}$"), why_ats_callback))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_ALERTS)}$"), toggle_alerts_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_ADMIN)}$"), admin_panel_command))
 
     app.add_error_handler(global_error_handler)

@@ -1030,11 +1030,11 @@ async def handle_country_callback(update: Update, context: ContextTypes.DEFAULT_
     save_subscriber(update.effective_user, country=country_val)
 
     keyboard = [
-        [InlineKeyboardButton("💼 Administración & Operaciones", callback_data="job_admin"), InlineKeyboardButton("📈 Ventas & Comercial B2B", callback_data="job_sales")],
-        [InlineKeyboardButton("🎧 Customer Support & Bilingüe", callback_data="job_support"), InlineKeyboardButton("📣 Marketing Digital & Redes", callback_data="job_marketing")],
-        [InlineKeyboardButton("📊 Finanzas & Contabilidad", callback_data="job_finance"), InlineKeyboardButton("💻 Tecnología & Soporte IT", callback_data="job_tech")],
-        [InlineKeyboardButton("📦 Logística & Compras", callback_data="job_logistics"), InlineKeyboardButton("🤖 Evaluador de IA (Outlier)", callback_data="job_ai")],
-        [InlineKeyboardButton("✍️ Escribir otro cargo manualmente", callback_data="job_custom")],
+        [InlineKeyboardButton("🛒 Ventas & Comercio", callback_data="job_ventas"), InlineKeyboardButton("📁 Auxiliar Administrativo", callback_data="job_admin")],
+        [InlineKeyboardButton("📦 Almacén & Bodega", callback_data="job_bodega"), InlineKeyboardButton("🎧 Atención al Cliente", callback_data="job_servicio")],
+        [InlineKeyboardButton("⚙️ Operario de Planta", callback_data="job_operario"), InlineKeyboardButton("🛡️ Vigilancia & Mant.", callback_data="job_seguridad")],
+        [InlineKeyboardButton("🍽️ Hostelería & Cocina", callback_data="job_hosteleria"), InlineKeyboardButton("🚗 Conductor & Reparto", callback_data="job_transporte")],
+        [InlineKeyboardButton("🌱 Primer Empleo (Sin exp.)", callback_data="job_primer_empleo"), InlineKeyboardButton("✍️ Escribir otro cargo", callback_data="job_custom")],
         [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1060,18 +1060,18 @@ async def handle_target_callback(update: Update, context: ContextTypes.DEFAULT_T
     job_code = query.data.replace("job_", "")
 
     job_titles = {
-        "admin": "Especialista en Administración & Operaciones",
-        "sales": "Especialista en Ventas & Desarrollo Comercial B2B",
-        "support": "Especialista en Servicio al Cliente & Customer Support",
-        "marketing": "Especialista en Marketing Digital & Crecimiento",
-        "finance": "Analista Financiero & Contable",
-        "tech": "Especialista en Tecnología & Soporte IT",
-        "logistics": "Coordinador de Logística & Cadena de Suministro",
-        "ai": "Evaluador de Modelos de Inteligencia Artificial (AI Trainer)",
-        "va": "Asistente Virtual & Coordinador de Operaciones Remotas",
-        "transcription": "Especialista en Transcripción y Edición de Contenido",
-        "dataentry": "Especialista en Gestión y Validación de Datos (Data Entry)",
-        "moderator": "Moderador de Contenidos y Seguridad Digital"
+        "ventas": "Asesor Comercial, Ventas & Cajero",
+        "admin": "Auxiliar Administrativo & Recepción",
+        "bodega": "Auxiliar de Almacén, Bodega & Logística",
+        "servicio": "Agente de Servicio al Cliente & Call Center",
+        "operario": "Operario de Producción & Planta Industrial",
+        "seguridad": "Guarda de Seguridad & Control de Accesos",
+        "hosteleria": "Auxiliar de Cocina, Mesero & Hostelería",
+        "transporte": "Conductor, Repartidor & Mensajería",
+        "primer_empleo": "Candidato Primer Empleo (Sin Experiencia Previa)",
+        "sales": "Asesor Comercial & Ventas",
+        "support": "Servicio al Cliente & Soporte",
+        "ai": "Evaluador de Modelos de IA"
     }
 
     if job_code == "custom":
@@ -1105,21 +1105,22 @@ async def receive_custom_target(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def ask_english_step(message, context) -> int:
-    """Muestra botones para el nivel de inglés."""
+    """Muestra botones de idiomas con opción de Solo Español (100% opcional)."""
     keyboard = [
-        [InlineKeyboardButton("🟢 Básico / Técnico (Enfoque proyectos en Español)", callback_data="eng_basic")],
-        [InlineKeyboardButton("🟡 Intermedio Conversacional (B1 - B2)", callback_data="eng_intermediate")],
-        [InlineKeyboardButton("🔵 Bilingüe Fluido / Avanzado (C1 - C2)", callback_data="eng_advanced")],
+        [InlineKeyboardButton("✅ Solo Español (Nativo)", callback_data="eng_none")],
+        [InlineKeyboardButton("🟡 Inglés Básico / Técnico", callback_data="eng_basic")],
+        [InlineKeyboardButton("🔵 Inglés Intermedio Conversacional", callback_data="eng_intermediate")],
+        [InlineKeyboardButton("⭐ Bilingüe Fluido (C1-C2)", callback_data="eng_advanced")],
         [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await message.reply_text(
-        f"🎯 Vacante confirmada: **{context.user_data['target_job']}**\n\n"
-        "📋 **PASO 4 DE 6 • DOMINIO DEL IDIOMA**\n"
+        f"🎯 Cargo seleccionado: **{context.user_data['target_job']}**\n\n"
+        "📋 **PASO 4 DE 6 • IDIOMAS (100% OPCIONAL)**\n"
         "`[████████░░] 66% completado`\n"
         "───────────────────────────────────\n"
-        "Selecciona tu nivel de competencia en inglés:",
+        "Para empleos normales solo se requiere Español. Si no manejas otro idioma, toca **'Solo Español'**:",
         parse_mode='Markdown',
         reply_markup=reply_markup
     )
@@ -1127,22 +1128,27 @@ async def ask_english_step(message, context) -> int:
 
 
 async def handle_english_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Guarda nivel de inglés y pregunta por educación."""
+    """Guarda nivel de idioma y pregunta por educación."""
     query = update.callback_query
     await query.answer()
 
-    eng_map = {
-        "eng_basic": "Español Nativo • Inglés Básico / Técnico",
-        "eng_intermediate": "Español Nativo • Inglés Intermedio Conversacional (B2)",
-        "eng_advanced": "Bilingüe Pleno (Español Nativo / Inglés Avanzado C1-C2)"
-    }
-    context.user_data['english_level'] = eng_map.get(query.data, "Español Nativo")
+    if query.data == "eng_none":
+        context.user_data['english_level'] = "Español Nativo"
+        context.user_data['language_text'] = "Español (Nativo)"
+    else:
+        eng_map = {
+            "eng_basic": "Inglés Básico / Técnico",
+            "eng_intermediate": "Inglés Intermedio Conversacional (B2)",
+            "eng_advanced": "Inglés Fluido / Avanzado (C1-C2)"
+        }
+        context.user_data['english_level'] = eng_map.get(query.data, "Español Nativo")
+        context.user_data['language_text'] = eng_map.get(query.data, "Español Nativo")
 
     keyboard = [
-        [InlineKeyboardButton("🎓 Universitario / Licenciatura Completa", callback_data="edu_university")],
-        [InlineKeyboardButton("📚 Formación Técnica / Tecnológica Superior", callback_data="edu_technician")],
-        [InlineKeyboardButton("🏫 Secundaria Completa / Bachiller", callback_data="edu_highschool")],
-        [InlineKeyboardButton("💻 Cursos & Certificaciones Digitales", callback_data="edu_courses")],
+        [InlineKeyboardButton("🏫 Secundaria / Bachiller Completo & Primaria", callback_data="edu_highschool")],
+        [InlineKeyboardButton("🎓 Técnico / Tecnológico (SENA o Instituto)", callback_data="edu_technician")],
+        [InlineKeyboardButton("📚 Universitario (En curso o graduado)", callback_data="edu_university")],
+        [InlineKeyboardButton("📝 Primaria Completa", callback_data="edu_primaria")],
         [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1165,18 +1171,32 @@ async def handle_education_callback(update: Update, context: ContextTypes.DEFAUL
     await query.answer()
 
     edu_map = {
-        "edu_university": "Estudios Universitarios / Titulación Profesional",
-        "edu_technician": "Formación Técnica / Tecnológica Superior",
-        "edu_highschool": "Educación Secundaria Completa / Bachiller Académico",
-        "edu_courses": "Capacitación Continua en Habilidades Digitales y Remotas"
+        "edu_highschool": {
+            "secundaria": {"colegio": "Colegio de Educación Secundaria", "ano": "Bachiller Académico Graduado", "estado": "Completo"},
+            "primaria": {"colegio": "Escuela Básica Primaria", "ano": "Años Cursados Completos", "estado": "Completa"}
+        },
+        "edu_technician": {
+            "secundaria": {"colegio": "Colegio de Educación Secundaria", "ano": "Bachiller Graduado", "estado": "Completo"},
+            "primaria": {"colegio": "Escuela Básica Primaria", "ano": "Completa", "estado": "Completa"},
+            "extra": "Formación Técnica / Tecnológica (SENA o Instituto Acreditado)"
+        },
+        "edu_university": {
+            "secundaria": {"colegio": "Colegio de Educación Secundaria", "ano": "Bachiller Graduado", "estado": "Completo"},
+            "primaria": {"colegio": "Escuela Básica Primaria", "ano": "Completa", "estado": "Completa"},
+            "extra": "Estudios Superiores Universitarios"
+        },
+        "edu_primaria": {
+            "secundaria": {"colegio": "Colegio de Educación Secundaria", "ano": "En Curso / Por Culminar", "estado": "En Curso"},
+            "primaria": {"colegio": "Escuela Básica Primaria", "ano": "Primaria Completa", "estado": "Completa"}
+        }
     }
     context.user_data['education'] = edu_map.get(query.data, "Formación Académica Completa")
 
     keyboard = [
-        [InlineKeyboardButton("🐣 Sin experiencia previa (Mi primer empleo remoto)", callback_data="exp_beginner")],
-        [InlineKeyboardButton("🚀 1 a 2 años de experiencia laboral", callback_data="exp_mid")],
-        [InlineKeyboardButton("💼 Más de 3 años de trayectoria", callback_data="exp_senior")],
-        [InlineKeyboardButton("✍️ Deseo escribir mi experiencia manualmente", callback_data="exp_custom")],
+        [InlineKeyboardButton("🌱 Primer Empleo (Sin experiencia laboral previa)", callback_data="exp_beginner")],
+        [InlineKeyboardButton("💼 1 a 2 años de experiencia laboral", callback_data="exp_mid")],
+        [InlineKeyboardButton("🏆 Más de 3 años de trayectoria laboral", callback_data="exp_senior")],
+        [InlineKeyboardButton("✍️ Escribir mi empresa y funciones", callback_data="exp_custom")],
         [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1252,17 +1272,14 @@ async def generate_and_send_final_cv(message, user, context) -> int:
         target_title = context.user_data.get('target_job', 'Trabajo Remoto')
 
         caption = (
-            "🏛️ **FICHA DE AUDITORÍA & CURRÍCULUM ATS GENERADO**\n"
+            "📄 **HOJA DE VIDA / CV FORMAL GENERADO CON ÉXITO**\n"
             "───────────────────────────────────\n"
             f"👤 **Candidato:** {cv_payload['name']}\n"
-            f"🎯 **Perfil:** {target_title}\n"
-            "📐 **Estructura:** Harvard Standard (1 Columna Lineal)\n\n"
-            "📊 **AUDITORÍA DE COMPATIBILIDAD ATS:**\n"
-            "• **Puntaje de Coincidencia:** `98 / 100` 🟢 (Óptimo)\n"
-            "• **Legibilidad Automatizada:** 100% Compatible con Workday, Lever y Greenhouse\n"
-            "• **Metodología:** Fórmulas XYZ (Verbo de Acción + Volumen + Métrica)\n"
-            "• **Densidad de Palabras Clave:** Calibrada para convocatorias en USD\n\n"
-            "📥 *Tu archivo PDF listo para postular está adjunto arriba.*"
+            f"💼 **Perfil / Oficio:** {target_title}\n"
+            "📐 **Formato:** Clásico Formal Ejecutivo (1 Página)\n"
+            "🎓 **Formación:** Secundaria y Primaria detalladas con años\n"
+            "🏢 **Experiencia:** Redacción formal orientada al cumplimiento\n\n"
+            "📥 *Tu archivo PDF listo para imprimir o enviar por WhatsApp/Correo está adjunto arriba.*"
         )
 
         keyboard = [
@@ -1297,307 +1314,321 @@ async def generate_and_send_final_cv(message, user, context) -> int:
 # ========================================================
 # Generador Heurístico de Contenido de Élite
 # ========================================================
+# ========================================================
+# Generador de Contenido para Hoja de Vida / CV Formal
+# ========================================================
 def generate_elite_cv_data(user_data):
-    """Genera datos de currículum con redacción ejecutiva de alto impacto."""
-    name = user_data.get('name', 'CANDIDATO PROFESIONAL')
-    email = user_data.get('email', 'contacto.profesional@gmail.com')
-    country = user_data.get('country', 'Modalidad Remota')
-    target = user_data.get('target_job', 'Evaluador de Inteligencia Artificial')
-    category = user_data.get('job_category', 'ai')
-    english = user_data.get('english_level', 'Español Nativo')
-    education = user_data.get('education', 'Formación Académica Completa')
-    exp_level = user_data.get('exp_level', 'beginner')
+    """Genera datos de currículum formal para todo tipo de empleos con redacción sobria y profesional."""
+    name = user_data.get('name', 'CANDIDATO PROFESIONAL').upper()
+    email = user_data.get('email', '')
+    phone = user_data.get('phone', '')
+    city = user_data.get('city') or user_data.get('country', 'Modalidad Presencial / Remota')
+    target = user_data.get('target_job', 'Asesor Comercial & Ventas')
+    category = user_data.get('job_category', 'ventas')
+    has_exp = user_data.get('has_experience', True)
+    custom_exp_data = user_data.get('experience_data')
+    custom_text = user_data.get('custom_exp_text', '')
+    raw_edu = user_data.get('education')
+    language = user_data.get('language', '')
+    language_text = user_data.get('language_text') or user_data.get('english_level', 'Español Nativo')
 
-    contact_line = f"{country} • {email} • LinkedIn / Perfil Profesional • {english}"
+    # Línea de contacto formal
+    contact_parts = []
+    if city: contact_parts.append(city)
+    if phone: contact_parts.append(f"Tel/WhatsApp: {phone}")
+    if email and "@" in email: contact_parts.append(email)
+    contact_parts.append("Disponibilidad Inmediata")
+    contact_line = " • ".join(contact_parts)
 
-    # 1. Plantilla Ejecutiva: ADMINISTRACIÓN & OPERACIONES
-    if category == "admin" or "admin" in target.lower() or "operacion" in target.lower() or "asistente" in target.lower():
+    # Idiomas opcional
+    is_native_only = (
+        language == 'native_only' or 
+        'solo' in language_text.lower() or 
+        language_text.strip().lower() == 'español nativo' or 
+        not language_text
+    )
+    languages_line = "" if is_native_only else f"Español (Nativo) • {language_text}"
+
+    # Formación Académica estructurada (Secundaria + Primaria)
+    if isinstance(raw_edu, dict):
+        education_dict = raw_edu
+    else:
+        # Fallback predeterminado formal
+        education_dict = {
+            "secundaria": {"colegio": "Colegio de Educación Secundaria", "ano": "Bachiller Académico Graduado", "estado": "Completo"},
+            "primaria": {"colegio": "Escuela de Educación Primaria", "ano": "Años Cursados Completos", "estado": "Completa"}
+        }
+
+    # Experiencia Laboral personalizada si el usuario escribió sus datos
+    user_experience = None
+    if custom_exp_data and isinstance(custom_exp_data, dict) and custom_exp_data.get('empresa'):
+        emp = custom_exp_data.get('empresa', 'Empresa Comercial')
+        car = custom_exp_data.get('cargo', target)
+        per = custom_exp_data.get('periodo', '2 años')
+        fun = custom_exp_data.get('funciones', '')
+        bullets = []
+        if fun:
+            bullets.append(f"Responsable de {fun.strip().rstrip('.')}.")
+        bullets.append("Atención respetuosa y cumplimiento de los procedimientos operativos y directrices de la empresa.")
+        bullets.append("Puntualidad estricta y colaboración continua con el equipo de trabajo en las metas diarias.")
+        bullets.append("Manejo adecuado de recursos, herramientas asignadas y orden en el puesto de trabajo.")
+        user_experience = [{
+            "role": car,
+            "company": f"{emp} | Modalidad Formal",
+            "period": per,
+            "bullets": bullets
+        }]
+    elif custom_text and len(custom_text.strip()) > 5:
+        user_experience = [{
+            "role": target,
+            "company": "Experiencia Laboral Previa Comprobable",
+            "period": "Trayectoria Reciente",
+            "bullets": [
+                f"Desempeño directo en: {custom_text.strip().rstrip('.')}.",
+                "Cumplimiento sistemático de las tareas asignadas y reporte periódico de novedades a supervisión.",
+                "Excelente disposición para el trabajo en equipo, puntualidad y honestidad en las labores cotidianas."
+            ]
+        }]
+
+    # Si es modalidad PRIMER EMPLEO (Sin experiencia laboral previa)
+    if category == "primer_empleo" or has_exp is False or user_data.get('exp_level') == 'beginner':
         summary = (
-            f"Profesional en Gestión Administrativa y Optimización Operativa con sólida competencia en coordinación interfuncional, "
-            f"administración de sistemas ERP (SAP, QuickBooks), gestión documental y control presupuestario bajo acuerdos de servicio (SLA). "
-            f"Capacidad comprobada para estandarizar procesos, reducir costos operativos y mantener un 99% de precisión en reportería ejecutiva."
+            f"Bachiller con sólida formación académica, principios éticos de honestidad, puntualidad y disciplina, con alta "
+            f"motivación para iniciar su vida laboral y aportar con entusiasmo en {target}. Caracterizado por rápida capacidad de aprendizaje, "
+            f"excelentes relaciones interpersonales, acatamiento respetuoso de instrucciones y total disponibilidad horaria inmediata."
         )
         experience = [
             {
-                "role": "Coordinador de Operaciones Administrativas & Gestión Documental",
-                "company": "Servicios Corporativos & Gestión Empresarial / Modalidad Remota",
-                "period": "2022 - Presente",
+                "role": "Participante en Proyectos Académicos, Apoyo Formativo & Comunitario",
+                "company": "Etapa Formativa y Escolar Reciente",
+                "period": "Periodo de Formación",
                 "bullets": [
-                    "Supervisión y optimización de flujos operativos para 4 unidades de negocio, reduciendo tiempos de trámite y archivo en un 32%.",
-                    "Administración de órdenes de compra y conciliación de facturas comerciales mediante ERP (SAP / QuickBooks) con un volumen mensual de $45,000 USD.",
-                    "Coordinación de agendas directivas, minutas ejecutivas y logística corporativa para más de 6 líderes de área sin solapamientos."
-                ]
-            },
-            {
-                "role": "Asistente Ejecutivo y de Control Operativo",
-                "company": "Servicios Profesionales de Gestión",
-                "period": "2020 - 2022",
-                "bullets": [
-                    "Estandarización de bases de datos internas en Google Workspace y Notion, facilitando el acceso a expedientes a más de 80 colaboradores.",
-                    "Atención y resolución ágil de más de 60 requerimientos administrativos semanales con un índice de cumplimiento del 98.8%."
+                    "Demostró puntualidad estricta, disciplina y cumplimiento oportuno en la entrega de tareas y proyectos escolares.",
+                    "Participación activa en actividades grupales y trabajo en equipo, demostrando compañerismo y respeto.",
+                    "Facilidad para aprender rápidamente nuevos métodos de trabajo, herramientas básicas y normas de la empresa.",
+                    "Disponibilidad horaria total e inmediata y máximo compromiso para desempeñarse con excelencia."
                 ]
             }
         ]
-        skills_tech = "Gestión de ERPs (SAP, QuickBooks), Control Presupuestario, Flujos de Trabajo Administrativos, Auditoría Documental"
-        skills_tools = "Microsoft Excel Avanzado (Tablas Dinámicas, BuscarX), SAP, Google Workspace, Notion, Trello, Slack"
-        skills_soft = "Liderazgo organizativo, Comunicación asertiva, Negociación con proveedores, Meticulosidad y ética"
+        skills_tech = "Facilidad de aprendizaje, Capacidad de concentración, Respeto y seguimiento de normas operativas"
+        skills_tools = "Manejo básico de herramientas informáticas (Word, Excel básico), Teléfono móvil, Mensajería digital"
+        skills_soft = "Puntualidad rigurosa, Honradez comprobada, Responsabilidad, Dinamismo, Excelente actitud de servicio"
 
-    # 2. Plantilla Ejecutiva: VENTAS & DESARROLLO COMERCIAL B2B
-    elif category == "sales" or "venta" in target.lower() or "comercial" in target.lower() or "sdr" in target.lower() or "b2b" in target.lower():
+    # 1. VENTAS & COMERCIO / CAJERO
+    elif category in ["ventas", "sales"] or "venta" in target.lower() or "cajero" in target.lower() or "comercio" in target.lower():
         summary = (
-            f"Especialista en Desarrollo Comercial B2B y Cierre de Ventas con historial demostrado en prospección estratégica, "
-            f"calificación de oportunidades (SDR/BDR) y aceleración de ciclos de conversión. Avanzado dominio de plataformas CRM (Salesforce, HubSpot), "
-            f"metodologías de venta consultiva (SPIN Selling) y nutrición de pipelines. Supera cuotas de prospección en más de un 115% de manera consistente."
+            f"Asesor Comercial y de Ventas con experiencia en atención presencial al cliente, cobro y manejo de caja, surtido de mercancía "
+            f"y cumplimiento de objetivos comerciales. Destacado por excelente actitud de servicio, cordialidad, honestidad en el manejo "
+            f"de valores y capacidad para asesorar oportunamente a los clientes generando confianza y fidelización."
         )
-        experience = [
+        experience = user_experience or [
             {
-                "role": "Especialista en Desarrollo de Ventas B2B & Prospección Comercial",
-                "company": "Soluciones Comerciales & Expansión B2B / Remoto",
-                "period": "2022 - Presente",
+                "role": "Asesor Comercial & Cajero de Mostrador",
+                "company": "Establecimiento Comercial & Distribución de Productos",
+                "period": "2021 - 2024",
                 "bullets": [
-                    "Prospección multicanal (LinkedIn Sales Navigator, cold email y llamadas) generando más de 35 demostraciones calificadas (SQLs) mensuales.",
-                    "Superación sistemática de cuotas trimestrales en un 118%, aportando más de $120,000 USD en nuevo volumen de facturación anual.",
-                    "Gestión y saneamiento riguroso del pipeline comercial en Salesforce y HubSpot, manteniendo una precisión de forecast superior al 93%."
-                ]
-            },
-            {
-                "role": "Ejecutivo de Cuentas y Atención Comercial",
-                "company": "Distribución Comercial & Servicios",
-                "period": "2020 - 2022",
-                "bullets": [
-                    "Negociación y fidelización de cartera de más de 65 clientes corporativos, logrando una tasa de retención interanual del 91%.",
-                    "Diseño de propuestas comerciales personalizadas y seguimiento postventa reduciendo tiempos de cierre en 12 días hábiles."
+                    "Atención y asesoría personalizada a más de 65 clientes diarios en punto de venta, garantizando un trato cordial y respetuoso.",
+                    "Cobro de mercancía en efectivo, tarjetas y pagos digitales mediante terminales POS, con arqueos y cierres de caja cuadran al 100%.",
+                    "Recepción, etiquetado, exhibición y control de inventarios de mercancía en estantería manteniendo el orden y disponibilidad.",
+                    "Cumplimiento sistemático de las metas de venta asignadas por la administración del negocio."
                 ]
             }
         ]
-        skills_tech = "Prospección B2B, Calificación de Oportunidades (BANT/MEDDIC), Gestión de Pipeline, Venta Consultiva"
-        skills_tools = "Salesforce, HubSpot CRM, LinkedIn Sales Navigator, Outreach, ZoomInfo, Slack, Google Sheets"
-        skills_soft = "Persuasión estratégica, Resiliencia comercial, Escucha activa, Negociación de alto impacto"
+        skills_tech = "Atención al cliente y ventas, Facturación y arqueo de caja (POS), Control de existencias e inventarios, Surtido y exhibición"
+        skills_tools = "Datafonos/POS, Sistemas de facturación básica, Calculadora comercial, Manejo de efectivo y comprobantes"
+        skills_soft = "Puntualidad estricta, Honestidad comprobada, Amabilidad en el trato, Trabajo bajo metas, Facilidad de comunicación"
 
-    # 3. Plantilla Ejecutiva: SERVICIO AL CLIENTE & CUSTOMER SUPPORT
-    elif category == "support" or "soporte" in target.lower() or "cliente" in target.lower() or "customer" in target.lower():
+    # 2. AUXILIAR ADMINISTRATIVO & RECEPCIÓN
+    elif category == "admin" or "admin" in target.lower() or "recep" in target.lower() or "asistente" in target.lower():
         summary = (
-            f"Especialista en Servicio al Cliente y Soporte Multicanal con enfoque en fidelización de usuarios, resolución en primer contacto (FCR) "
-            f"y gestión rigurosa de tickets bajo estándares internacionales. Sólida experiencia en plataformas de mesa de ayuda (Zendesk, Freshdesk, Intercom), "
-            f"atención de clientes bilingües y cumplimiento de acuerdos de nivel de servicio (SLA). Mantiene de forma constante un CSAT superior al 98%."
+            f"Auxiliar Administrativo y de Oficina con experiencia en atención presencial y telefónica, gestión documental, radicación de "
+            f"correspondencia, digitación y archivo organizado físico y digital. Comprometido con el orden, la puntualidad, la confidencialidad "
+            f"de la información institucional y la agilidad en la gestión de trámites cotidianos."
         )
-        experience = [
+        experience = user_experience or [
             {
-                "role": "Especialista en Atención al Cliente & Soporte Multicanal",
-                "company": "Plataforma de Servicios Digitales / Modalidad Remota",
-                "period": "2022 - Presente",
+                "role": "Auxiliar Administrativo & Atención en Recepción",
+                "company": "Empresa de Servicios y Gestión Administrativa",
+                "period": "2021 - 2024",
                 "bullets": [
-                    "Atención y resolución de más de 85 solicitudes diarias vía chat en vivo, correo y telefonía IP con un índice CSAT promedio del 98.4%.",
-                    "Reducción del tiempo medio de resolución (TTR) de 45 a 18 minutos mediante la redacción de macros y plantillas estandarizadas en Zendesk.",
-                    "Cumplimiento del 99.2% de los SLAs corporativos y escalamiento documentado de casos técnicos al equipo de ingeniería."
-                ]
-            },
-            {
-                "role": "Representante de Atención y Fidelización de Usuarios",
-                "company": "Centro de Contacto & Servicios al Consumidor",
-                "period": "2020 - 2022",
-                "bullets": [
-                    "Gestión de reclamos complejos y retención de usuarios con una tasa de éxito del 88% en prevención de cancelaciones.",
-                    "Registro detallado de incidencias en CRM para detección temprana de fallas operativas en productos y servicios."
+                    "Recepción, radicación y distribución oportuna de facturas, correspondencia y solicitudes a las áreas encargadas.",
+                    "Atención cordial de llamadas en conmutador y recepción presencial de visitantes, proveedores y usuarios.",
+                    "Digitación de planillas, elaboración de oficios formales y archivo sistemático de expedientes físicos y electrónicos.",
+                    "Control de inventario de papelería, suministros y apoyo logístico en reuniones de oficina."
                 ]
             }
         ]
-        skills_tech = "Resolución en Primer Contacto (FCR), Gestión de SLAs, Manejo de Conflictos, Métricas CSAT / NPS"
-        skills_tools = "Zendesk, Freshdesk, Intercom, Salesforce Service Cloud, Aircall, Slack, Google Workspace"
-        skills_soft = "Empatía asertiva, Comunicación clara bajo presión, Paciencia, Orientación al usuario"
+        skills_tech = "Gestión documental y archivo, Digitación ágil, Radicación y control de correspondencia, Redacción de actas y cartas"
+        skills_tools = "Microsoft Office (Excel, Word básico), Correo electrónico, Fotocopiadoras, Escáneres, Conmutador telefónico"
+        skills_soft = "Organización metódica, Discreción y ética profesional, Puntualidad intachable, Excelente presentación personal"
 
-    # 4. Plantilla Ejecutiva: MARKETING DIGITAL, GROWTH & REDES SOCIALES
-    elif category == "marketing" or "marketing" in target.lower() or "redes" in target.lower() or "growth" in target.lower():
+    # 3. ALMACÉN, BODEGA & LOGÍSTICA
+    elif category in ["bodega", "logistics"] or "bodega" in target.lower() or "almacen" in target.lower() or "logist" in target.lower():
         summary = (
-            f"Especialista en Marketing Digital, Estrategia de Contenidos y Growth Marketing con competencia probada en adquisición de audiencias, "
-            f"gestión de pauta publicitaria (Meta Ads, Google Ads) y optimización de conversión (CRO). Experiencia en analítica web (Google Analytics 4), "
-            f"estrategia SEO para posicionamiento orgánico y diseño de embudos de venta. Logra incrementar el tráfico web calificado en más de un 45%."
+            f"Auxiliar de Bodega y Almacén con amplia experiencia en recepción, almacenamiento, clasificación, control de inventario, "
+            f"alistamiento de pedidos (picking/packing) y despacho de mercancías. Con formación en normas de seguridad y salud en el trabajo, "
+            f"resistencia física, orden y excelente manejo de la carga."
         )
-        experience = [
+        experience = user_experience or [
             {
-                "role": "Especialista en Marketing Digital & Crecimiento de Audiencia",
-                "company": "Agencia Digital & Comercio Electrónico / Modalidad Remota",
-                "period": "2022 - Presente",
+                "role": "Auxiliar de Almacén, Bodega & Despacho",
+                "company": "Centro de Distribución y Almacenamiento de Mercancías",
+                "period": "2021 - 2024",
                 "bullets": [
-                    "Planificación y ejecución de campañas de pauta digital en Meta Ads y Google Ads con presupuesto mensual de $12,000 USD y ROAS promedio de 3.8x.",
-                    "Diseño e implementación de estrategia SEO on-page y técnica, aumentando el tráfico orgánico indexado en un 48% interanual.",
-                    "Crecimiento de comunidades en redes sociales en más de 35,000 seguidores con una tasa de interacción (engagement) sostenida del 4.2%."
-                ]
-            },
-            {
-                "role": "Coordinador de Contenidos y Canales Digitales",
-                "company": "Comercio & Medios Digitales",
-                "period": "2020 - 2022",
-                "bullets": [
-                    "Creación de calendarios editoriales, redacción de copys persuasivos y producción de piezas gráficas alineadas a la identidad de marca.",
-                    "Automatización de secuencias de email marketing mediante Mailchimp con tasas de apertura superiores al 29%."
+                    "Descargue, verificación física y cotejo de remisiones contra mercancía recibida de transportadores y proveedores.",
+                    "Acomodación, rotulado y almacenamiento de productos en estanterías bajo método PEPS (primeras en entrar, primeras en salir).",
+                    "Alistamiento, empaque seguro y rotulado de pedidos para entrega puntual a clientes y rutas de distribución.",
+                    "Participación activa en inventarios físicos periódicos y mantenimiento del orden y aseo en las zonas de bodega."
                 ]
             }
         ]
-        skills_tech = "SEO / SEM, Publicidad Digital (Meta/Google Ads), Analítica de Conversión (GA4), Inbound Marketing"
-        skills_tools = "Google Analytics 4, Meta Ads Manager, Google Ads, Semrush, Mailchimp, WordPress, Canva Pro"
-        skills_soft = "Pensamiento creativo, Análisis de métricas, Adaptabilidad rápida a tendencias, Autonomía ejecutiva"
+        skills_tech = "Recepción y despacho de mercancías, Control y conteo de inventarios, Picking y packing, Rotulado y embalaje de carga"
+        skills_tools = "Carretillas manuales, Estibadores hidráulicos, Lector de código de barras, Formatos de remisión"
+        skills_soft = "Fuerza y resistencia física, Disciplina operativa, Puntualidad rigurosa, Cuidado y protección del producto"
 
-    # 5. Plantilla Ejecutiva: FINANZAS, CONTABILIDAD & ANÁLISIS DE DATOS
-    elif category == "finance" or "finanza" in target.lower() or "contab" in target.lower() or "data" in target.lower():
+    # 4. ATENCIÓN AL CLIENTE & CALL CENTER
+    elif category in ["servicio", "support"] or "cliente" in target.lower() or "soporte" in target.lower() or "call" in target.lower():
         summary = (
-            f"Profesional en Finanzas y Contabilidad con amplia experiencia en conciliaciones bancarias masivas, análisis de estados financieros, "
-            f"facturación electrónica y control presupuestario. Avanzado dominio de modelos financieros en Excel (Macros VBA, Power Query), "
-            f"sistemas ERP (SAP, QuickBooks, Xero) y elaboración de reportes de rentabilidad para la toma de decisiones directivas. Rigor del 100% en auditorías."
+            f"Agente de Servicio al Cliente con vocación de servicio, empatía, excelente escucha activa y habilidad para brindar soluciones "
+            f"ágiles a peticiones, quejas y reclamos (PQR). Enfocado en generar una experiencia positiva en el usuario, mantener la calma bajo "
+            f"situaciones exigentes y asegurar la satisfacción y lealtad del cliente."
         )
-        experience = [
+        experience = user_experience or [
             {
-                "role": "Analista Financiero & Contable Senior",
-                "company": "Servicios Financieros & Consultoría Contable / Remoto",
-                "period": "2022 - Presente",
+                "role": "Asesor de Servicio al Cliente & Canales de Atención",
+                "company": "Centro de Atención y Servicios Comerciales",
+                "period": "2021 - 2024",
                 "bullets": [
-                    "Conciliación bancaria y comercial de más de 1,200 transacciones mensuales multidivisa (USD, EUR, moneda local), reduciendo discrepancias al 0.4%.",
-                    "Elaboración de estados financieros mensuales (Balance General, PyG, Flujo de Caja) y modelos de proyección presupuestaria para junta directiva.",
-                    "Automatización de reportes contables mediante Power Query y fórmulas avanzadas de Excel, ahorrando 14 horas de labor manual semanal."
-                ]
-            },
-            {
-                "role": "Asistente Contable y de Facturación",
-                "company": "Organización Comercial & Servicios",
-                "period": "2020 - 2022",
-                "bullets": [
-                    "Gestión y emisión de facturación electrónica, registro de cuentas por cobrar y gestión de cobranza oportuna con 95% de efectividad.",
-                    "Preparación y revisión de documentación soporte para declaraciones tributarias y auditorías fiscales anuales."
+                    "Atención cálida y respetuosa a usuarios vía telefónica y presencial, resolviendo consultas y dudas sobre servicios.",
+                    "Registro, tipificación y seguimiento de solicitudes en el sistema de gestión interna garantizando tiempos de respuesta oportunos.",
+                    "Orientación precisa sobre trámites, productos, horarios y procedimientos de la empresa.",
+                    "Transformación de inconformidades en experiencias positivas mediante diálogo empático y soluciones prácticas."
                 ]
             }
         ]
-        skills_tech = "Conciliaciones Bancarias, Modelado Financiero, Cierres Contables, Análisis de Flujo de Caja, Auditoría Fiscal"
-        skills_tools = "Microsoft Excel Avanzado (Power Query, Macros), SAP FI/CO, QuickBooks, Xero, Power BI, Google Sheets"
-        skills_soft = "Pensamiento analítico crítico, Máxima precisión numérica, Ética profesional inquebrantable, Confidencialidad"
+        skills_tech = "Resolución de peticiones y reclamos (PQR), Protocolos de servicio al cliente, Escucha activa y comunicación asertiva"
+        skills_tools = "Sistemas de tickets o radicación básica, Conmutadores, Diademas telefónicas, Chat y correo de atención"
+        skills_soft = "Paciencia y tolerancia a la frustración, Dicción clara, Empatía natural, Trabajo en equipo, Responsabilidad"
 
-    # 6. Plantilla Ejecutiva: TECNOLOGÍA, SOPORTE IT & PROGRAMACIÓN
-    elif category == "tech" or "tecnolog" in target.lower() or "it" in target.lower() or "desarrollo" in target.lower() or "program" in target.lower():
+    # 5. OPERARIO DE PRODUCCIÓN & PLANTA
+    elif category == "operario" or "planta" in target.lower() or "fabrica" in target.lower() or "produccion" in target.lower():
         summary = (
-            f"Especialista en Tecnología de la Información y Soporte Técnico con experiencia sólida en administración de infraestructura digital, "
-            f"soporte a usuarios L1/L2, automatización de tareas y gestión de accesos bajo marco ITIL. Competente en administración de entornos cloud "
-            f"(Google Workspace, Microsoft 365 / Azure AD), gestión de incidencias en Jira y scripts de automatización (Python/Bash). 96.5% de satisfacción."
+            f"Operario de Producción y Planta con experiencia en líneas continuas de ensamble, envasado, empaque, manipulación de materias "
+            f"primas y cumplimiento de estándares de calidad e higiene. Riguroso en el uso de Elementos de Protección Personal (EPP) y comprometido "
+            f"con alcanzar las metas diarias fijadas por la jefatura de planta."
         )
-        experience = [
+        experience = user_experience or [
             {
-                "role": "Especialista en Soporte de TI & Operaciones Técnicas",
-                "company": "Servicios de Tecnología & Infraestructura Digital / Remoto",
-                "period": "2022 - Presente",
+                "role": "Operario de Producción & Línea de Ensamble",
+                "company": "Planta de Producción y Manufactura Industrial",
+                "period": "2021 - 2024",
                 "bullets": [
-                    "Diagnóstico y resolución de más de 120 incidencias técnicas mensuales (hardware, software, redes y accesos) con 96.5% de satisfacción de usuarios.",
-                    "Administración de usuarios, licencias y políticas de seguridad en Google Workspace y Microsoft 365 / Azure AD para más de 200 colaboradores remotos.",
-                    "Desarrollo de scripts de automatización en Python y Bash para aprovisionamiento de cuentas y respaldos de bases de datos, reduciendo tiempos en 40%."
-                ]
-            },
-            {
-                "role": "Técnico de Mesa de Ayuda (Help Desk) y Redes",
-                "company": "Soluciones Corporativas de Telecomunicaciones",
-                "period": "2020 - 2022",
-                "bullets": [
-                    "Monitoreo de disponibilidad de servidores y conectividad VPN, reportando y mitigando fallas con tiempos de respuesta menores a 10 minutos.",
-                    "Instalación, configuración y mantenimiento preventivo de equipos y estaciones de trabajo."
+                    "Operación en línea de ensamble y empaque cumpliendo estrictamente con las especificaciones de calidad y presentación.",
+                    "Inspección visual continua del producto terminado para apartar unidades defectuosas antes del embalaje final.",
+                    "Cumplimiento cabal de las normas de seguridad y salud en el trabajo (SST) y mantenimiento del orden y aseo (5S).",
+                    "Aporte sostenido para superar el 100% de la cuota diaria de producción asignada a la cuadrilla de trabajo."
                 ]
             }
         ]
-        skills_tech = "Soporte L1/L2, Administración de Azure AD / Google Workspace, Redes y VPNs, Metodología ITIL, Ciberseguridad"
-        skills_tools = "Jira Service Management, Confluence, Python, Bash, Windows/Linux Server, Docker básico, Git"
-        skills_soft = "Diagnóstico lógico y deductivo, Comunicación técnica clara, Trabajo en equipo multidisciplinario, Proactividad"
+        skills_tech = "Operación de línea de producción, Empaque y sellado, Inspección de calidad visual, Normas de seguridad industrial"
+        skills_tools = "Herramientas manuales de ensamble, Selladoras, Básculas de pesado, Elementos de protección personal (EPP)"
+        skills_soft = "Destreza y agilidad manual, Resistencia física, Atención meticulosa al detalle, Acatamiento estricto de órdenes"
 
-    # 7. Plantilla Ejecutiva: LOGÍSTICA, COMPRAS & CADENA DE SUMINISTRO
-    elif category == "logistics" or "logist" in target.lower() or "compras" in target.lower() or "supply" in target.lower():
+    # 6. SEGURIDAD, VIGILANCIA & MANTENIMIENTO
+    elif category == "seguridad" or "vigil" in target.lower() or "seguridad" in target.lower() or "conserje" in target.lower():
         summary = (
-            f"Coordinador de Logística, Compras y Cadena de Suministro con experiencia comprobada en gestión de inventarios, negociación con proveedores, "
-            f"coordinación de transporte y reducción sistemática de costos operativos. Sólido manejo de sistemas WMS, módulos ERP (SAP MM/SD) "
-            f"y modelado de reaprovisionamiento en Excel. Mantiene exactitud de inventario superior al 99.2% y reduce tiempos de entrega en 2 días hábiles."
+            f"Guarda de Seguridad y Vigilancia con experiencia en control de acceso de personas y vehículos, rondas de supervisión perimetral, "
+            f"diligenciamiento de minutas y custodia responsable de instalaciones. Destacado por su alta disciplina, honradez intachable, "
+            f"sentido de alerta constante y trato respetuoso con visitantes y residentes."
         )
-        experience = [
+        experience = user_experience or [
             {
-                "role": "Coordinador de Logística, Aprovisionamiento & Cadena de Suministro",
-                "company": "Operador Logístico & Comercio Internacional / Modalidad Remota",
-                "period": "2022 - Presente",
+                "role": "Guarda de Seguridad & Control de Accesos",
+                "company": "Conjunto Residencial / Empresa de Seguridad Privada",
+                "period": "2021 - 2024",
                 "bullets": [
-                    "Negociación y gestión de acuerdos comerciales con más de 35 proveedores nacionales e internacionales, logrando un ahorro del 14% en costos de compras.",
-                    "Control y supervisión de inventarios para más de 4,000 SKUs manteniendo un índice de exactitud de stock (IRA) superior al 99.2%.",
-                    "Optimización de rutas de distribución y monitoreo de despachos de última milla, reduciendo tiempos de tránsito en 2 días hábiles."
-                ]
-            },
-            {
-                "role": "Analista de Inventarios y Gestión de Compras",
-                "company": "Distribución Comercial y Logística",
-                "period": "2020 - 2022",
-                "bullets": [
-                    "Emisión y seguimiento de órdenes de compra, control de tiempos de entrega (lead times) y evaluación periódica del desempeño de proveedores.",
-                    "Generación de reportes semanales de rotación de stock y mermas para la gerencia de operaciones."
+                    "Control y registro de ingresos y salidas de personas, contratistas y vehículos en el libro de minuta de seguridad.",
+                    "Realización periódica de rondas de inspección física por el perímetro, puntos vulnerables y accesos del recinto.",
+                    "Monitoreo de pantallas de circuito cerrado de televisión (CCTV) y reporte oportuno de cualquier anomalía.",
+                    "Atención respetuosa y oportuna de situaciones imprevistas velando siempre por la tranquilidad de los usuarios."
                 ]
             }
         ]
-        skills_tech = "Gestión de Cadena de Suministro, Control de Inventarios (ABC/Just In Time), Negociación de Compras, WMS"
-        skills_tools = "SAP (MM/SD), Excel Avanzado para Logística, ERPs de Comercio, Trello, Google Sheets, Slack"
-        skills_soft = "Visión estratégica de procesos, Negociación bajo presión, Organización meticulosa, Orientación a eficiencia"
+        skills_tech = "Control de accesos y registro vehicular, Rondas de inspección perimetral, Diligenciamiento de minutas, Monitoreo básico de cámaras"
+        skills_tools = "Minuta de guardia, Radioteléfonos de comunicación, Sistemas de citofonía, Detectores de metales"
+        skills_soft = "Honradez absoluta, Disciplina y firmeza respetuosa, Sentido de alerta constante, Puntualidad estricta"
 
-    # 8. Plantilla Ejecutiva para EVALUADOR DE IA (Outlier / DataAnnotation)
-    elif category == "ai" or "ia" in target.lower() or "outlier" in target.lower() or "dataannotation" in target.lower():
+    # 7. HOSTELERÍA, COCINA & MESERO
+    elif category == "hosteleria" or "cocina" in target.lower() or "mesero" in target.lower() or "restaurante" in target.lower():
         summary = (
-            f"Profesional analítico y meticuloso especializado en evaluación de respuestas para Modelos de Lenguaje Grande (LLMs) "
-            f"y calibración de datos de inteligencia artificial. Sólida competencia en validación de restricciones negativas complejas, "
-            f"detección de alucinaciones semánticas y control de calidad bajo rúbricas de RLHF (Reinforcement Learning from Human Feedback). "
-            f"Capacidad comprobada para formular justificaciones técnicas rigurosas y mantener un índice de precisión superior al 98.8% en entornos remotos."
+            f"Auxiliar de Servicio, Mesero y Cocina con experiencia en atención cordial de comensales a la mesa, toma de comandas, alistamiento "
+            f"de materias primas (mise en place), higiene de áreas de trabajo y manipulación segura de alimentos. Dinámico, rápido, con vocación "
+            f"de servicio y capacidad para trabajar en equipo en horas de alta demanda."
         )
-        experience = [
+        experience = user_experience or [
             {
-                "role": "Evaluador de Modelos de Lenguaje & Auditor de Calidad de IA",
-                "company": "Proyectos de Entrenamiento de IA / Modalidad Remota Internacional",
-                "period": "2023 - Presente",
+                "role": "Mesero & Auxiliar de Servicio Gastronómico",
+                "company": "Restaurante y Servicios Gastronómicos",
+                "period": "2021 - 2024",
                 "bullets": [
-                    "Evaluación comparativa y benchmarking de más de 450 respuestas de chatbots semanales en español nativo e inglés, verificando veracidad fáctica y coherencia de estilo.",
-                    "Auditoría rigurosa de restricciones negativas (Negative Constraints) y cumplimiento estricto de directrices, alcanzando una tasa de precisión del 99.2% en auditorías de calidad.",
-                    "Redacción de justificaciones analíticas exhaustivas para resolución de desempates de respuestas de modelos (Side-by-Side Model Comparison), argumentando sesgos algorítmicos y anomalías semánticas."
-                ]
-            },
-            {
-                "role": "Especialista en Gestión de Datos y Validación Operativa",
-                "company": "Servicios Profesionales / Gestión de Información Digital",
-                "period": "2021 - 2023",
-                "bullets": [
-                    "Clasificación, validación y control de calidad de bases de datos operativas con estricto apego a protocolos de confidencialidad y plazos de entrega.",
-                    "Coordinación interfuncional en plataformas colaborativas en la nube (Slack, Notion, Google Workspace, Trello), optimizando tiempos de resolución en un 22%."
+                    "Atención de mesas con alta calidez y rapidez, tomando pedidos y sirviendo platos y bebidas conforme a los estándares del local.",
+                    "Apoyo en el alistamiento previo de insumos (mise en place), lavado, desinfección y porcionado de ingredientes.",
+                    "Mantenimiento continuo de la higiene en salón, vajilla, cristalería y cocina cumpliendo normas sanitarias.",
+                    "Cobro de cuentas y entrega de comprobantes a clientes garantizando la satisfacción del servicio."
                 ]
             }
         ]
-        skills_tech = "Evaluación de LLMs, Detección de Alucinaciones, Benchmarking RLHF, Análisis Factual, Validación de Restricciones Negativas"
-        skills_tools = "Google Workspace (Docs, Sheets), Slack, Notion, Trello, Jira, Herramientas de Etiquetado y Análisis de Datos"
-        skills_soft = "Pensamiento crítico, Atención exhaustiva al detalle, Comunicación asertiva remota, Gestión eficiente del tiempo"
+        skills_tech = "Servicio cordial a la mesa, Manipulación higiénica de alimentos, Toma y despacho de comandas, Aseo y desinfección"
+        skills_tools = "Bandejas de servicio, Utensilios de cocina y porcionado, Puntos de cobro y comandas electrónicas"
+        skills_soft = "Rapidez y agilidad física, Amabilidad permanente, Trabajo en equipo bajo presión, Compromiso y pulcritud"
 
-    # 9. Plantilla General Adaptativa para Cargo Personalizado
+    # 8. CONDUCTOR, REPARTO & MENSAJERÍA
+    elif category == "transporte" or "conductor" in target.lower() or "reparto" in target.lower() or "mensajer" in target.lower():
+        summary = (
+            f"Conductor y Repartidor con amplia experiencia en transporte y distribución urbana de mercancías y encomiendas, manejo "
+            f"defensivo, puntualidad en entregas y conocimiento de nomenclatura y rutas. Comprometido con el cuidado preventivo del vehículo, "
+            f"la entrega íntegra de paquetes y la atención amable al cliente destinatario."
+        )
+        experience = user_experience or [
+            {
+                "role": "Conductor & Auxiliar de Reparto Urbano",
+                "company": "Empresa de Logística, Reparto & Mensajería",
+                "period": "2021 - 2024",
+                "bullets": [
+                    "Planificación y cumplimiento diario de rutas de entrega garantizando puntualidad y optimización de tiempos.",
+                    "Cargue, estiba y aseguramiento cuidadoso de paquetes en el vehículo para prevenir roturas o pérdidas en tránsito.",
+                    "Entrega directa a destinatarios, verificación de identidad, recaudo de pagos y firma de guías de recibido.",
+                    "Inspección diaria del estado mecánico y preventivo del vehículo (frenos, aceite, llantas) manteniéndolo en óptimas condiciones."
+                ]
+            }
+        ]
+        skills_tech = "Manejo defensivo y normatividad de tránsito, Nomenclatura y optimización de rutas urbanas, Control de remisiones y guías"
+        skills_tools = "Dispositivos GPS/Waze, Aplicaciones de entrega móvil, Formatos de planilla de reparto"
+        skills_soft = "Puntualidad rigurosa, Responsabilidad en la vía, Honestidad y cuidado con la mercancía, Buen trato con el cliente"
+
+    # 9. OTRO OFICIO / CARGO PERSONALIZADO
     else:
         summary = (
-            f"Profesional altamente competente y orientado al cumplimiento de objetivos con sólida trayectoria en responsabilidades clave de {target}. "
-            f"Experiencia contrastada en optimización de procesos, gestión de información cuantitativa y coordinación eficiente en entornos de trabajo modernos. "
-            f"Capacidad demostrada para superar indicadores clave de rendimiento (KPIs), aplicar rigor metodológico y aportar valor tangible a la organización."
+            f"Trabajador formal y responsable en el área de {target}, con experiencia comprobable en el cumplimiento de tareas operativas, "
+            f"atención respetuosa al público y cuidado de los recursos asignados. Caracterizado por su puntualidad, dedicación, honestidad "
+            f"y capacidad para integrarse con éxito a equipos de trabajo."
         )
-        experience = [
+        experience = user_experience or [
             {
-                "role": f"Especialista en Gestión y Desarrollo Profesional - {target}",
-                "company": "Servicios Profesionales & Proyectos / Modalidad Remota o Presencial",
-                "period": "2023 - Presente",
+                "role": target,
+                "company": "Empresa Comercial y de Servicios",
+                "period": "2021 - 2024",
                 "bullets": [
-                    f"Planificación y ejecución de tareas prioritarias alineadas a las métricas de rendimiento para {target}, asegurando 100% de cumplimiento en plazos.",
-                    "Análisis y procesamiento de requerimientos con un índice de precisión superior al 98.5%, optimizando flujos de trabajo en un 24%.",
-                    "Coordinación interfuncional mediante plataformas de trabajo colaborativo en la nube (Google Workspace, Slack, Trello, Notion)."
-                ]
-            },
-            {
-                "role": "Asistente Operativo y de Soporte Especializado",
-                "company": "Organización Comercial & Servicios",
-                "period": "2021 - 2023",
-                "bullets": [
-                    "Estandarización de bases de datos y archivo sistemático de información corporativa relevante con apego a normas de calidad.",
-                    "Atención y seguimiento oportuno a solicitudes internas y externas garantizando tiempos de respuesta menores a 24 horas."
+                    f"Desempeño riguroso de las funciones y responsabilidades del puesto de {target}.",
+                    "Cumplimiento puntual de las metas, directrices y normativas internas de la empresa.",
+                    "Atención respetuosa y constructiva con clientes, compañeros y directivos.",
+                    "Compromiso constante con la mejora continua, el orden y la seguridad en el trabajo."
                 ]
             }
         ]
-        skills_tech = f"Gestión estratégica para {target}, Análisis de datos, Planificación de flujos operativos, Control de calidad"
-        skills_tools = "Google Workspace, Microsoft 365, Slack, Trello, Zoom, Plataformas Cloud de Gestión"
-        skills_soft = "Responsabilidad ejecutiva, Comunicación asertiva, Aprendizaje ágil, Orientación a resultados medibles"
+        skills_tech = f"Conocimientos prácticos en {target}, Ejecución de tareas operativas, Cumplimiento de procedimientos"
+        skills_tools = "Herramientas y equipos propios del oficio, Elementos de trabajo asignados"
+        skills_soft = "Puntualidad estricta, Honestidad comprobada, Disciplina laboral, Excelente disposición para el trabajo en equipo"
 
     return {
         "name": name,
@@ -1607,123 +1638,124 @@ def generate_elite_cv_data(user_data):
         "skills_tech": skills_tech,
         "skills_tools": skills_tools,
         "skills_soft": skills_soft,
-        "education": education
+        "education": education_dict,
+        "languages": languages_line
     }
 
 
 # ========================================================
-# Motor de Renderizado PDF ATS (Harvard / Silicon Valley)
+# Motor de Renderizado PDF para Hoja de Vida / CV Formal
 # ========================================================
 def build_ats_pdf(data):
-    """Genera un documento PDF de 1 página con tipografía ejecutiva y 100% amigable para ATS."""
+    """Genera un documento PDF formal de 1 página, sobrio, elegante y 100% legible."""
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=letter,
-        leftMargin=38,
-        rightMargin=38,
-        topMargin=32,
-        bottomMargin=32
+        leftMargin=36,
+        rightMargin=36,
+        topMargin=28,
+        bottomMargin=28
     )
 
     styles = getSampleStyleSheet()
     color_primary = colors.HexColor('#0F172A')    # Slate 900
-    color_section = colors.HexColor('#1E3A8A')    # Navy Blue
+    color_section = colors.HexColor('#1E3A8A')    # Navy Blue formal
     color_body = colors.HexColor('#1E293B')       # Slate 800
-    color_line = colors.HexColor('#CBD5E1')       # Border Slate
+    color_line = colors.HexColor('#CBD5E1')       # Borde sutil
 
     name_style = ParagraphStyle(
-        'AtsName',
+        'FormalName',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=16,
-        leading=19,
+        fontSize=15,
+        leading=18,
         textColor=color_primary,
         alignment=1,
-        spaceAfter=3
+        spaceAfter=2
     )
 
     contact_style = ParagraphStyle(
-        'AtsContact',
+        'FormalContact',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=8.5,
-        leading=11,
+        fontSize=8.2,
+        leading=10.5,
         textColor=colors.HexColor('#475569'),
         alignment=1,
-        spaceAfter=6
+        spaceAfter=5
     )
 
     heading_style = ParagraphStyle(
-        'AtsHeading',
+        'FormalHeading',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=9.5,
-        leading=12,
+        fontSize=9,
+        leading=11.5,
         textColor=color_section,
-        spaceBefore=7,
+        spaceBefore=6,
         spaceAfter=2
     )
 
     body_style = ParagraphStyle(
-        'AtsBody',
+        'FormalBody',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=8.3,
-        leading=11.2,
+        fontSize=8,
+        leading=10.5,
         textColor=color_body,
         alignment=4,
-        spaceAfter=4
+        spaceAfter=3
     )
 
     role_style = ParagraphStyle(
-        'AtsRole',
+        'FormalRole',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=8.8,
-        leading=11.5,
+        fontSize=8.5,
+        leading=11,
         textColor=color_primary,
         spaceBefore=2,
         spaceAfter=1
     )
 
     company_style = ParagraphStyle(
-        'AtsCompany',
+        'FormalCompany',
         parent=styles['Normal'],
         fontName='Helvetica-Oblique',
-        fontSize=8.2,
-        leading=10.5,
+        fontSize=7.8,
+        leading=9.8,
         textColor=colors.HexColor('#475569'),
         spaceAfter=2
     )
 
     bullet_style = ParagraphStyle(
-        'AtsBullet',
+        'FormalBullet',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=8.2,
-        leading=10.8,
+        fontSize=7.8,
+        leading=10.2,
         textColor=color_body,
-        leftIndent=12,
-        firstLineIndent=-8,
-        spaceAfter=1.8
+        leftIndent=10,
+        firstLineIndent=-7,
+        spaceAfter=1.5
     )
 
     story = []
 
-    # 1. ENCABEZADO LIMPIO
+    # 1. ENCABEZADO FORMAL
     story.append(Paragraph(data['name'], name_style))
     story.append(Paragraph(data['contact_line'], contact_style))
-    story.append(HRFlowable(width="100%", thickness=1, color=color_line, spaceBefore=2, spaceAfter=5))
+    story.append(HRFlowable(width="100%", thickness=1, color=color_line, spaceBefore=2, spaceAfter=4))
 
-    # 2. PERFIL PROFESIONAL
-    story.append(Paragraph("PERFIL PROFESIONAL", heading_style))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=3))
+    # 2. PERFIL LABORAL
+    story.append(Paragraph("PERFIL LABORAL / PROFESIONAL", heading_style))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=2))
     story.append(Paragraph(data['summary'], body_style))
 
-    # 3. EXPERIENCIA LABORAL RELEVANTE (FÓRMULA XYZ)
-    story.append(Paragraph("EXPERIENCIA LABORAL RELEVANTE", heading_style))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=3))
+    # 3. EXPERIENCIA LABORAL
+    story.append(Paragraph("EXPERIENCIA LABORAL", heading_style))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=2))
 
     for job in data['experience']:
         story.append(Paragraph(job['role'], role_style))
@@ -1733,23 +1765,61 @@ def build_ats_pdf(data):
             story.append(Paragraph(bullet_text, bullet_style))
         story.append(Spacer(1, 2))
 
-    # 4. HABILIDADES Y HERRAMIENTAS
-    story.append(Paragraph("HABILIDADES TÉCNICAS & HERRAMIENTAS DIGITALES", heading_style))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=3))
-    
-    story.append(Paragraph(f"<b>Competencias Técnicas:</b> {data['skills_tech']}", body_style))
-    story.append(Paragraph(f"<b>Herramientas & Entornos:</b> {data['skills_tools']}", body_style))
-    story.append(Paragraph(f"<b>Habilidades Profesionales:</b> {data['skills_soft']}", body_style))
-
-    # 5. FORMACIÓN ACADÉMICA
+    # 4. FORMACIÓN ACADÉMICA (SECUNDARIA Y PRIMARIA DETALLADAS)
     story.append(Paragraph("FORMACIÓN ACADÉMICA", heading_style))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=3))
-    story.append(Paragraph(f"<b>{data['education']}</b> — Formación Oficial / Modalidad Acreditada", body_style))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=2))
+
+    edu_data = data.get('education')
+    if isinstance(edu_data, dict):
+        # Secundaria
+        sec = edu_data.get('secundaria')
+        if sec and isinstance(sec, dict):
+            sec_col = sec.get('colegio', 'Colegio de Educación Secundaria')
+            sec_ano = sec.get('ano', '')
+            sec_est = sec.get('estado', 'Bachiller Académico')
+            sec_text = f"• <b>Educación Secundaria / Bachillerato:</b> {sec_col}"
+            if sec_ano: sec_text += f" | {sec_ano}"
+            if sec_est: sec_text += f" — <i>{sec_est}</i>"
+            story.append(Paragraph(sec_text, body_style))
+        # Primaria
+        pri = edu_data.get('primaria')
+        if pri and isinstance(pri, dict):
+            pri_col = pri.get('colegio', 'Escuela de Educación Primaria')
+            pri_ano = pri.get('ano', '')
+            pri_est = pri.get('estado', 'Primaria Completa')
+            pri_text = f"• <b>Educación Básica Primaria:</b> {pri_col}"
+            if pri_ano: pri_text += f" | {pri_ano}"
+            if pri_est: pri_text += f" — <i>{pri_est}</i>"
+            story.append(Paragraph(pri_text, body_style))
+        # Extra
+        extra = edu_data.get('extra')
+        if extra and str(extra).strip():
+            story.append(Paragraph(f"• <b>Otros Estudios / Cursos:</b> {extra}", body_style))
+    else:
+        story.append(Paragraph(f"• <b>Educación Secundaria:</b> Colegio de Educación Secundaria — <i>Bachiller Graduado</i>", body_style))
+        story.append(Paragraph(f"• <b>Educación Primaria:</b> Escuela de Educación Primaria — <i>Primaria Completa</i>", body_style))
+
+    # 5. COMPETENCIAS Y HABILIDADES
+    story.append(Paragraph("COMPETENCIAS LABORALES & HABILIDADES", heading_style))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=2))
+    story.append(Paragraph(f"<b>Competencias del Oficio:</b> {data['skills_tech']}", body_style))
+    story.append(Paragraph(f"<b>Valores & Actitudes:</b> {data['skills_soft']}", body_style))
+
+    # 6. IDIOMAS (100% Opcional)
+    lang_line = data.get('languages', '')
+    if lang_line and 'solo' not in lang_line.lower() and 'native_only' not in lang_line.lower():
+        story.append(Paragraph("IDIOMAS", heading_style))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=2))
+        story.append(Paragraph(f"• {lang_line}", body_style))
+
+    # 7. REFERENCIAS LABORALES Y PERSONALES
+    story.append(Paragraph("REFERENCIAS LABORALES Y PERSONALES", heading_style))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=2))
+    story.append(Paragraph("Disponibles inmediatamente a solicitud del empleador con sus respectivos contactos de verificación.", body_style))
 
     doc.build(story)
     buffer.seek(0)
     return buffer
-
 
 # ========================================================
 # Plantillas Oficiales de Vacantes para el Canal
@@ -2162,13 +2232,18 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         data = json.loads(raw_data)
         if data.get('action') == 'generate_cv':
             context.user_data['name'] = data.get('name', 'CANDIDATO PROFESIONAL')
-            context.user_data['email'] = data.get('email', 'contacto.profesional@gmail.com')
-            context.user_data['country'] = data.get('country', 'Modalidad Remota')
-            context.user_data['job_category'] = data.get('category', 'admin')
-            context.user_data['target_job'] = data.get('target_job', 'Especialista en Administración & Operaciones')
-            context.user_data['english_level'] = data.get('english', 'eng_basic')
-            context.user_data['exp_level'] = data.get('exp_level', 'beginner')
-            context.user_data['education'] = 'Formación Universitaria / Técnica Completa'
+            context.user_data['phone'] = data.get('phone', '')
+            context.user_data['city'] = data.get('city', '')
+            context.user_data['email'] = data.get('email', '')
+            context.user_data['country'] = data.get('city', 'Modalidad Presencial / Remota')
+            context.user_data['job_category'] = data.get('category', 'ventas')
+            context.user_data['target_job'] = data.get('target_role', 'Asesor Comercial & Ventas')
+            context.user_data['has_experience'] = data.get('has_experience', True)
+            context.user_data['experience_data'] = data.get('experience_data')
+            context.user_data['education'] = data.get('education')
+            context.user_data['language'] = data.get('language', 'native_only')
+            context.user_data['language_text'] = data.get('language_text', 'Español (Nativo)')
+            context.user_data['exp_level'] = 'mid' if data.get('has_experience') else 'beginner'
             context.user_data['custom_exp_text'] = ''
 
             save_subscriber(update.effective_user, country=context.user_data['country'], target_job=context.user_data['target_job'])

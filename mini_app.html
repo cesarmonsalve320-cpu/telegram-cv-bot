@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Diseñador de CV ATS de Élite • Mini App</title>
+  <title>Creador de CV Formal • Hoja de Vida Profesional</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-base: #0c0e12;
-      --bg-surface: #14171f;
-      --bg-surface-elevated: #1b202b;
+      --bg-base: #0f1117;
+      --bg-surface: #181b24;
+      --bg-surface-elevated: #222634;
       --border-subtle: rgba(255, 255, 255, 0.08);
       --border-focus: #3b82f6;
-      --text-primary: #f1f5f9;
+      --text-primary: #f8fafc;
       --text-secondary: #94a3b8;
       --text-muted: #64748b;
       --accent-blue: #2563eb;
@@ -24,262 +24,517 @@
       --radius-sm: 8px;
       --radius-md: 12px;
       --radius-lg: 16px;
-      --shadow-tactile: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 4px rgba(0, 0, 0, 0.3);
+      --shadow-tactile: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 4px rgba(0, 0, 0, 0.35);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
       background-color: var(--bg-base);
       color: var(--text-primary);
-      padding: 16px 14px 32px;
+      padding: 14px 12px 40px;
       line-height: 1.5;
-      font-size: 14px;
+      font-size: 13.5px;
       user-select: none;
     }
-    .header { margin-bottom: 20px; text-align: center; padding: 12px 8px; }
+    .header { margin-bottom: 18px; text-align: center; padding: 8px 6px; }
     .badge-pill {
-      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px;
       border-radius: 999px; background: rgba(37, 99, 235, 0.12);
       border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa;
-      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
     }
     .header h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; color: var(--text-primary); margin-bottom: 4px; }
-    .header p { font-size: 12px; color: var(--text-secondary); max-width: 320px; margin: 0 auto; }
-    .section-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; }
+    .header p { font-size: 12px; color: var(--text-secondary); max-width: 330px; margin: 0 auto; line-height: 1.4; }
+    
+    .section-title {
+      font-size: 12px; font-weight: 700; color: #93c5fd; text-transform: uppercase;
+      letter-spacing: 0.5px; margin: 16px 0 8px; display: flex; align-items: center; gap: 6px;
+    }
     .card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; }
     .input-group { margin-bottom: 12px; }
     .input-group:last-child { margin-bottom: 0; }
-    .input-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    .input-group label { display: block; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px; }
+    .input-group label span.opt { font-weight: 400; color: var(--text-muted); font-size: 10.5px; }
     .input-field {
       width: 100%; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; color: var(--text-primary);
+      border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px; color: var(--text-primary);
       outline: none; transition: border-color 0.15s ease; font-family: inherit;
     }
     .input-field:focus { border-color: var(--border-focus); }
-    .category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 6px; }
+    .input-field::placeholder { color: #475569; }
+    
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    
+    /* Category selector */
+    .category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 4px; }
     .category-card {
       background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle);
       border-radius: var(--radius-sm); padding: 10px 8px; cursor: pointer;
       display: flex; flex-direction: column; gap: 2px; transition: all 0.15s ease; position: relative;
     }
     .category-card:active { transform: scale(0.98); }
-    .category-card.selected { border-color: var(--accent-blue); background: rgba(37, 99, 235, 0.12); }
+    .category-card.selected { border-color: var(--accent-blue); background: rgba(37, 99, 235, 0.14); }
     .category-card.selected::after { content: '✓'; position: absolute; top: 6px; right: 6px; font-size: 11px; font-weight: 700; color: #60a5fa; }
-    .category-card .cat-icon { font-size: 16px; margin-bottom: 2px; }
-    .category-card .cat-title { font-size: 11.5px; font-weight: 700; color: var(--text-primary); }
+    .category-card .cat-icon { font-size: 17px; margin-bottom: 2px; }
+    .category-card .cat-title { font-size: 11.5px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
     .category-card .cat-desc { font-size: 9.5px; color: var(--text-muted); line-height: 1.2; }
-    .option-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+    
+    /* Pills options */
+    .option-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
     .pill-option {
       flex: 1; min-width: fit-content; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle);
       border-radius: var(--radius-sm); padding: 8px 10px; font-size: 11.5px; font-weight: 600;
       color: var(--text-secondary); text-align: center; cursor: pointer; white-space: nowrap; transition: all 0.15s ease;
     }
-    .pill-option.selected { border-color: var(--accent-blue); background: rgba(37, 99, 235, 0.15); color: #93c5fd; }
-    .preview-box { background: #0f1218; border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: var(--radius-sm); padding: 12px; margin-top: 10px; }
+    .pill-option.selected { border-color: var(--accent-blue); background: rgba(37, 99, 235, 0.18); color: #bfdbfe; font-weight: 700; }
+    
+    .exp-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    
+    /* Live preview box */
+    .preview-box { background: #0c0e14; border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: var(--radius-sm); padding: 12px; margin-top: 14px; }
     .preview-header { border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 8px; margin-bottom: 8px; }
-    .preview-name { font-family: 'Newsreader', serif; font-size: 16px; font-weight: 600; color: #f8fafc; }
-    .preview-meta { font-size: 10px; color: var(--text-muted); }
-    .preview-rule { font-size: 10px; color: #94a3b8; line-height: 1.4; font-style: italic; }
+    .preview-name { font-size: 15px; font-weight: 700; color: #f8fafc; letter-spacing: 0.3px; }
+    .preview-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .preview-item { font-size: 10.5px; color: #cbd5e1; margin-bottom: 4px; line-height: 1.35; }
+    .preview-item b { color: #93c5fd; }
+    
     .btn-submit {
       width: 100%; background: var(--accent-blue); color: #ffffff; border: none; border-radius: var(--radius-md);
-      padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-tactile);
-      transition: transform 0.1s ease; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 18px;
+      padding: 14px; font-size: 14.5px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-tactile);
+      transition: transform 0.1s ease, background-color 0.15s ease; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 18px;
     }
     .btn-submit:active { transform: translateY(1px); background: var(--accent-blue-hover); }
-    .footer-note { text-align: center; font-size: 10.5px; color: var(--text-muted); margin-top: 12px; }
+    .footer-note { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 12px; line-height: 1.4; }
   </style>
 </head>
 <body>
+
   <div class="header">
-    <div class="badge-pill">⚡ Telegram Mini App • Estándar Harvard</div>
-    <h1>Diseñador de CV ATS</h1>
-    <p>Compilación ejecutiva cuantitativa (Fórmula Google XYZ) lista para superar filtros corporativos.</p>
+    <div class="badge-pill">📄 Hoja de Vida Formal • Formato Oficial</div>
+    <h1>Creador de CV Formal</h1>
+    <p>Estructura ejecutiva y sobria para empleos tradicionales, comercios y empresas formales.</p>
   </div>
-  <div class="section-title">👤 1. Datos Personales</div>
+
+  <!-- 1. DATOS PERSONALES -->
+  <div class="section-title">👤 1. Datos Personales y de Contacto</div>
   <div class="card">
     <div class="input-group">
-      <label for="inputName">Nombre Completo</label>
-      <input type="text" id="inputName" class="input-field" placeholder="Ej. Andrés Morales">
+      <label>Nombre y Apellidos Completos *</label>
+      <input type="text" id="inputName" class="input-field" placeholder="Ej: Carlos Andrés Pérez Gómez" maxlength="60">
     </div>
-    <div class="input-group">
-      <label for="inputEmail">Correo Electrónico Profesional</label>
-      <input type="email" id="inputEmail" class="input-field" placeholder="andres.morales@gmail.com">
+    <div class="grid-2">
+      <div class="input-group">
+        <label>Teléfono / WhatsApp *</label>
+        <input type="tel" id="inputPhone" class="input-field" placeholder="Ej: +57 300 1234567" maxlength="20">
+      </div>
+      <div class="input-group">
+        <label>Ciudad y País *</label>
+        <input type="text" id="inputCity" class="input-field" placeholder="Ej: Bogotá, Colombia" maxlength="35">
+      </div>
     </div>
-    <div class="input-group">
-      <label for="inputCountry">País de Residencia</label>
-      <input type="text" id="inputCountry" class="input-field" placeholder="Colombia, México, Argentina, Perú...">
+    <div class="input-group" style="margin-top: 10px;">
+      <label>Correo Electrónico *</label>
+      <input type="email" id="inputEmail" class="input-field" placeholder="Ej: carlos.perez@gmail.com" maxlength="50">
     </div>
   </div>
-  <div class="section-title">🎯 2. Área / Industria Objetivo</div>
+
+  <!-- 2. CARGO / ÁREA LABORAL -->
+  <div class="section-title">💼 2. Área Laboral o Cargo Deseado</div>
   <div class="card">
+    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">Selecciona el área que mejor se adapta a tu perfil o escribe tu oficio:</p>
     <div class="category-grid" id="categoryGrid">
-      <div class="category-card selected" data-category="admin" data-title="Administración & Operaciones">
-        <span class="cat-icon">💼</span>
+      <div class="category-card selected" data-cat="ventas" data-title="Ventas, Comercial & Cajero">
+        <span class="cat-icon">🛒</span>
+        <span class="cat-title">Ventas & Comercio</span>
+        <span class="cat-desc">Cajero, asesor, mostrador</span>
+      </div>
+      <div class="category-card" data-cat="admin" data-title="Auxiliar Administrativo & Recepción">
+        <span class="cat-icon">📁</span>
         <span class="cat-title">Administración</span>
-        <span class="cat-desc">Asistente Ejecutivo, ERPs y Gestión</span>
+        <span class="cat-desc">Auxiliar, archivo, recepción</span>
       </div>
-      <div class="category-card" data-category="sales" data-title="Ventas & Desarrollo Comercial">
-        <span class="cat-icon">📈</span>
-        <span class="cat-title">Ventas & B2B</span>
-        <span class="cat-desc">SDR, Cuentas y CRM (HubSpot/Salesforce)</span>
-      </div>
-      <div class="category-card" data-category="support" data-title="Servicio al Cliente & Soporte">
-        <span class="cat-icon">🎧</span>
-        <span class="cat-title">Customer Support</span>
-        <span class="cat-desc">Zendesk, Métricas CSAT y Soporte Bilingüe</span>
-      </div>
-      <div class="category-card" data-category="marketing" data-title="Marketing Digital & Redes">
-        <span class="cat-icon">📣</span>
-        <span class="cat-title">Marketing Digital</span>
-        <span class="cat-desc">Growth, Ads, SEO y Analítica Web</span>
-      </div>
-      <div class="category-card" data-category="finance" data-title="Finanzas, Contabilidad & Datos">
-        <span class="cat-icon">📊</span>
-        <span class="cat-title">Finanzas & Data</span>
-        <span class="cat-desc">Excel Avanzado, Conciliación y Auditoría</span>
-      </div>
-      <div class="category-card" data-category="tech" data-title="Tecnología & Soporte IT">
-        <span class="cat-icon">💻</span>
-        <span class="cat-title">Tecnología & IT</span>
-        <span class="cat-desc">Soporte Técnico, Infraestructura y Jira</span>
-      </div>
-      <div class="category-card" data-category="logistics" data-title="Logística & Compras">
+      <div class="category-card" data-cat="bodega" data-title="Almacén, Bodega & Logística">
         <span class="cat-icon">📦</span>
-        <span class="cat-title">Logística & Compras</span>
-        <span class="cat-desc">Inventarios, Proveedores y Distribución</span>
+        <span class="cat-title">Almacén & Bodega</span>
+        <span class="cat-desc">Inventarios, despacho, carga</span>
       </div>
-      <div class="category-card" data-category="ai" data-title="Evaluador de Modelos de IA">
-        <span class="cat-icon">🤖</span>
-        <span class="cat-title">Evaluador de IA</span>
-        <span class="cat-desc">Outlier, Remotasks y Calidad RLHF</span>
+      <div class="category-card" data-cat="servicio" data-title="Servicio al Cliente & Call Center">
+        <span class="cat-icon">🎧</span>
+        <span class="cat-title">Atención al Cliente</span>
+        <span class="cat-desc">Reclamos, soporte, llamadas</span>
+      </div>
+      <div class="category-card" data-cat="operario" data-title="Operario de Producción & Manufactura">
+        <span class="cat-icon">⚙️</span>
+        <span class="cat-title">Operario de Planta</span>
+        <span class="cat-desc">Línea de producción, ensamble</span>
+      </div>
+      <div class="category-card" data-cat="seguridad" data-title="Vigilancia & Mantenimiento">
+        <span class="cat-icon">🛡️</span>
+        <span class="cat-title">Seguridad & Mant.</span>
+        <span class="cat-desc">Vigilancia, conserjería, aseo</span>
+      </div>
+      <div class="category-card" data-cat="hosteleria" data-title="Hostelería, Cocina & Mesero">
+        <span class="cat-icon">🍽️</span>
+        <span class="cat-title">Hostelería & Cocina</span>
+        <span class="cat-desc">Mesero, ayudante, cocina</span>
+      </div>
+      <div class="category-card" data-cat="transporte" data-title="Conductor, Reparto & Mensajería">
+        <span class="cat-icon">🚗</span>
+        <span class="cat-title">Conductor & Reparto</span>
+        <span class="cat-desc">Transporte, domicilios, ruta</span>
+      </div>
+      <div class="category-card" data-cat="primer_empleo" data-title="Candidato Primer Empleo">
+        <span class="cat-icon">🌱</span>
+        <span class="cat-title">Primer Empleo</span>
+        <span class="cat-desc">Sin experiencia previa</span>
+      </div>
+      <div class="category-card" data-cat="custom" data-title="Otro Oficio / Profesión">
+        <span class="cat-icon">✍️</span>
+        <span class="cat-title">Otro Oficio</span>
+        <span class="cat-desc">Personalizar cargo</span>
       </div>
     </div>
-  </div>
-  <div class="section-title">🌐 3. Competencia en Inglés</div>
-  <div class="card">
-    <div class="option-row" id="englishRow">
-      <div class="pill-option selected" data-english="eng_basic">🟢 Básico / Técnico</div>
-      <div class="pill-option" data-english="eng_intermediate">🟡 Intermedio (B1-B2)</div>
-      <div class="pill-option" data-english="eng_advanced">🔵 Bilingüe (C1-C2)</div>
+    <div class="input-group" id="customTargetGroup" style="display: none; margin-top: 12px;">
+      <label>Escribe el cargo o perfil deseado:</label>
+      <input type="text" id="inputCustomTarget" class="input-field" placeholder="Ej: Electricista, Pintor, Técnico de Celulares..." maxlength="40">
     </div>
   </div>
-  <div class="section-title">⚡ 4. Nivel de Experiencia</div>
+
+  <!-- 3. FORMACIÓN ACADÉMICA (SECUNDARIA Y PRIMARIA DETALLADAS) -->
+  <div class="section-title">🎓 3. Formación Académica (Estudios)</div>
   <div class="card">
-    <div class="option-row" id="expRow">
-      <div class="pill-option selected" data-exp="beginner">Junior / Inicial</div>
-      <div class="pill-option" data-exp="intermediate">Medio (2-4 años)</div>
-      <div class="pill-option" data-exp="expert">Senior (+5 años)</div>
+    <div style="font-size: 11.5px; font-weight: 700; color: #93c5fd; margin-bottom: 8px;">A. Educación Secundaria / Bachillerato</div>
+    <div class="input-group">
+      <label>Colegio o Institución Educativa *</label>
+      <input type="text" id="inputSecundariaColegio" class="input-field" placeholder="Ej: Colegio San José / I.E. Nacional" maxlength="50">
+    </div>
+    <div class="grid-2">
+      <div class="input-group">
+        <label>Año de Grado / Finalización *</label>
+        <input type="text" id="inputSecundariaAno" class="input-field" placeholder="Ej: 2019" maxlength="10">
+      </div>
+      <div class="input-group">
+        <label>Estado Académico *</label>
+        <select id="selectSecundariaEstado" class="input-field">
+          <option value="Graduado (Bachiller Académico)">Graduado (Bachiller)</option>
+          <option value="Bachiller Técnico">Bachiller Técnico</option>
+          <option value="En Curso">En curso</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="font-size: 11.5px; font-weight: 700; color: #93c5fd; margin: 14px 0 8px;">B. Educación Primaria</div>
+    <div class="input-group">
+      <label>Escuela o Institución Primaria *</label>
+      <input type="text" id="inputPrimariaColegio" class="input-field" placeholder="Ej: Escuela Básica Departamental" maxlength="50">
+    </div>
+    <div class="grid-2">
+      <div class="input-group">
+        <label>Años Cursados *</label>
+        <input type="text" id="inputPrimariaAno" class="input-field" placeholder="Ej: 2008 - 2013" maxlength="15">
+      </div>
+      <div class="input-group">
+        <label>Estado *</label>
+        <select id="selectPrimariaEstado" class="input-field">
+          <option value="Completa">Primaria Completa</option>
+          <option value="En Curso">En curso</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="font-size: 11.5px; font-weight: 700; color: #94a3b8; margin: 14px 0 6px;">C. Estudios Superiores o Cursos <span style="font-weight:400; color:#64748b;">(Opcional)</span></div>
+    <div class="input-group">
+      <label>Técnico, Tecnólogo, Universitario o Cursos: <span class="opt">Si no tienes, déjalo en blanco</span></label>
+      <input type="text" id="inputEstudiosExtra" class="input-field" placeholder="Ej: Técnico en Operaciones Logísticas (SENA) - 2022" maxlength="65">
     </div>
   </div>
-  <div class="section-title">👁️ Previsualización del Formato</div>
+
+  <!-- 4. EXPERIENCIA LABORAL -->
+  <div class="section-title">🏢 4. Experiencia Laboral Anterior</div>
+  <div class="card">
+    <div class="input-group">
+      <label>¿Cuentas con experiencia laboral previa?</label>
+      <div class="exp-toggle">
+        <div class="pill-option selected" id="btnExpYes" onclick="toggleExpMode(true)">Sí tengo experiencia</div>
+        <div class="pill-option" id="btnExpNo" onclick="toggleExpMode(false)">🌱 Primer Empleo / Sin exp.</div>
+      </div>
+    </div>
+
+    <div id="expFieldsContainer">
+      <div class="input-group">
+        <label>Empresa o Negocio más reciente *</label>
+        <input type="text" id="inputExpEmpresa" class="input-field" placeholder="Ej: Almacenes Éxito / Distribuidora San Juan" maxlength="50">
+      </div>
+      <div class="grid-2">
+        <div class="input-group">
+          <label>Cargo Desempeñado *</label>
+          <input type="text" id="inputExpCargo" class="input-field" placeholder="Ej: Asesor de Mostrador / Auxiliar" maxlength="40">
+        </div>
+        <div class="input-group">
+          <label>Tiempo / Años Trabajados *</label>
+          <input type="text" id="inputExpPeriodo" class="input-field" placeholder="Ej: 2021 - 2023 (2 años)" maxlength="25">
+        </div>
+      </div>
+      <div class="input-group" style="margin-top: 10px;">
+        <label>Funciones y Responsabilidades Principales: <span class="opt">(Opcional: el bot las redactará formalmente si lo dejas vacío)</span></label>
+        <input type="text" id="inputExpFunciones" class="input-field" placeholder="Ej: Atención al público, arqueo de caja, surtido de mercancía..." maxlength="100">
+      </div>
+    </div>
+
+    <div id="noExpInfo" style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-sm); padding: 10px; font-size: 11.5px; color: #a7f3d0;">
+      ✨ <b>Modalidad Primer Empleo Activada:</b> Tu CV destacará tu formación académica, alto sentido de responsabilidad, puntualidad, ganas de superación, adaptabilidad y disponibilidad inmediata.
+    </div>
+  </div>
+
+  <!-- 5. IDIOMAS (100% OPCIONAL) -->
+  <div class="section-title">🌐 5. Idiomas (100% Opcional)</div>
+  <div class="card">
+    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">Para empleos normales solo se requiere Español. Si no manejas otro idioma, no te preocupes:</p>
+    <div class="option-row">
+      <div class="pill-option selected" data-lang="native_only">✅ Solo Español (Nativo)</div>
+      <div class="pill-option" data-lang="eng_basic">Inglés Básico</div>
+      <div class="pill-option" data-lang="eng_inter">Inglés Intermedio</div>
+      <div class="pill-option" data-lang="other">Otro Idioma</div>
+    </div>
+  </div>
+
+  <!-- VISTA PREVIA RÁPIDA -->
   <div class="preview-box">
     <div class="preview-header">
       <div class="preview-name" id="prevName">TU NOMBRE COMPLETO</div>
-      <div class="preview-meta" id="prevMeta">Modalidad Remota / Presencial • Correo • Teléfono • LinkedIn</div>
+      <div class="preview-meta" id="prevMeta">Ciudad • Teléfono • Correo</div>
     </div>
-    <div class="preview-rule" id="prevSummary">
-      "Profesional con historial medible en optimización de procesos operativos, gestión de herramientas líderes del sector y enfoque riguroso en cumplimiento de objetivos cuantitativos..."
-    </div>
+    <div class="preview-item" id="prevCargo"><b>Cargo Objetivo:</b> Ventas, Comercial & Cajero</div>
+    <div class="preview-item" id="prevEdu"><b>Educación:</b> Secundaria & Primaria completas</div>
+    <div class="preview-item" id="prevExp"><b>Experiencia:</b> Registro laboral formal comprobable</div>
+    <div class="preview-item" id="prevLang"><b>Idiomas:</b> Español (Nativo)</div>
   </div>
-  <button class="btn-submit" id="btnSubmit">
-    <span>📄 Compilar y Recibir CV en PDF</span>
+
+  <button type="button" class="btn-submit" id="btnSubmit">
+    <span>📄 Generar Hoja de Vida Formal (PDF)</span>
   </button>
-  <p class="footer-note">Garantía de legibilidad 100% en software ATS corporativo (Workday, Taleo, Greenhouse).</p>
+  <div class="footer-note">
+    Documento formal de 1 página listo para presentar a Recursos Humanos y empresas.
+  </div>
+
   <script>
-    const tg = window.Telegram ? window.Telegram.WebApp : null;
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
     if (tg) {
       tg.ready();
       tg.expand();
-      try { tg.headerColor = '#0c0e12'; tg.backgroundColor = '#0c0e12'; } catch (e) {}
     }
-    let selectedCategory = 'admin';
-    let selectedCategoryTitle = 'Administración & Operaciones';
-    let selectedEnglish = 'eng_basic';
-    let selectedExp = 'beginner';
 
+    let selectedCategory = 'ventas';
+    let selectedCategoryTitle = 'Ventas, Comercial & Cajero';
+    let selectedLanguage = 'native_only';
+    let selectedLanguageText = 'Español (Nativo)';
+    let hasExperience = true;
+
+    // Selector de Categorías
     const catCards = document.querySelectorAll('.category-card');
+    const customGroup = document.getElementById('customTargetGroup');
+    const inputCustom = document.getElementById('inputCustomTarget');
+
     catCards.forEach(card => {
       card.addEventListener('click', () => {
         catCards.forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
-        selectedCategory = card.dataset.category;
+        selectedCategory = card.dataset.cat;
         selectedCategoryTitle = card.dataset.title;
+
+        if (selectedCategory === 'custom') {
+          customGroup.style.display = 'block';
+          inputCustom.focus();
+        } else {
+          customGroup.style.display = 'none';
+        }
+
+        if (selectedCategory === 'primer_empleo') {
+          toggleExpMode(false);
+        }
+
         if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
         updatePreview();
       });
     });
 
-    const englishPills = document.querySelectorAll('#englishRow .pill-option');
-    englishPills.forEach(pill => {
+    // Selector de Idiomas (Opcional)
+    const langPills = document.querySelectorAll('[data-lang]');
+    langPills.forEach(pill => {
       pill.addEventListener('click', () => {
-        englishPills.forEach(p => p.classList.remove('selected'));
+        langPills.forEach(p => p.classList.remove('selected'));
         pill.classList.add('selected');
-        selectedEnglish = pill.dataset.english;
+        selectedLanguage = pill.dataset.lang;
+        selectedLanguageText = pill.textContent.replace('✅ ', '');
         if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        updatePreview();
       });
     });
 
-    const expPills = document.querySelectorAll('#expRow .pill-option');
-    expPills.forEach(pill => {
-      pill.addEventListener('click', () => {
-        expPills.forEach(p => p.classList.remove('selected'));
-        pill.classList.add('selected');
-        selectedExp = pill.dataset.exp;
-        if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-      });
-    });
+    // Toggle de experiencia
+    function toggleExpMode(enabled) {
+      hasExperience = enabled;
+      const btnYes = document.getElementById('btnExpYes');
+      const btnNo = document.getElementById('btnExpNo');
+      const expContainer = document.getElementById('expFieldsContainer');
+      const noExpInfo = document.getElementById('noExpInfo');
 
+      if (enabled) {
+        btnYes.classList.add('selected');
+        btnNo.classList.remove('selected');
+        expContainer.style.display = 'block';
+        noExpInfo.style.display = 'none';
+      } else {
+        btnYes.classList.remove('selected');
+        btnNo.classList.add('selected');
+        expContainer.style.display = 'none';
+        noExpInfo.style.display = 'block';
+      }
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+      updatePreview();
+    }
+
+    // Inputs dinámicos
     const inputName = document.getElementById('inputName');
+    const inputPhone = document.getElementById('inputPhone');
+    const inputCity = document.getElementById('inputCity');
     const inputEmail = document.getElementById('inputEmail');
-    const inputCountry = document.getElementById('inputCountry');
+
+    const inputSecColegio = document.getElementById('inputSecundariaColegio');
+    const inputSecAno = document.getElementById('inputSecundariaAno');
+    const selectSecEstado = document.getElementById('selectSecundariaEstado');
+
+    const inputPriColegio = document.getElementById('inputPrimariaColegio');
+    const inputPriAno = document.getElementById('inputPrimariaAno');
+
     const prevName = document.getElementById('prevName');
     const prevMeta = document.getElementById('prevMeta');
+    const prevCargo = document.getElementById('prevCargo');
+    const prevEdu = document.getElementById('prevEdu');
+    const prevExp = document.getElementById('prevExp');
+    const prevLang = document.getElementById('prevLang');
 
     function updatePreview() {
       const name = inputName.value.trim() || 'TU NOMBRE COMPLETO';
-      const country = inputCountry.value.trim() || 'Modalidad Remota';
-      const email = inputEmail.value.trim() || 'correo.profesional@gmail.com';
+      const phone = inputPhone.value.trim() || 'Teléfono';
+      const city = inputCity.value.trim() || 'Ciudad';
+      const email = inputEmail.value.trim() || 'correo@ejemplo.com';
+
       prevName.textContent = name.toUpperCase();
-      prevMeta.textContent = country + ' • ' + email + ' • ' + selectedCategoryTitle;
+      prevMeta.textContent = city + ' • ' + phone + ' • ' + email;
+
+      let cargo = selectedCategoryTitle;
+      if (selectedCategory === 'custom' && inputCustom.value.trim()) {
+        cargo = inputCustom.value.trim();
+      }
+      prevCargo.innerHTML = '<b>Cargo Objetivo:</b> ' + cargo;
+
+      const secCol = inputSecColegio.value.trim();
+      const secAno = inputSecAno.value.trim();
+      if (secCol) {
+        prevEdu.innerHTML = '<b>Educación:</b> ' + secCol + (secAno ? ' (' + secAno + ')' : '') + ' • Primaria Registrada';
+      } else {
+        prevEdu.innerHTML = '<b>Educación:</b> Secundaria & Primaria completas';
+      }
+
+      if (hasExperience) {
+        const emp = document.getElementById('inputExpEmpresa').value.trim();
+        const car = document.getElementById('inputExpCargo').value.trim();
+        if (emp && car) {
+          prevExp.innerHTML = '<b>Experiencia:</b> ' + car + ' en ' + emp;
+        } else {
+          prevExp.innerHTML = '<b>Experiencia:</b> Registro laboral previo formal';
+        }
+      } else {
+        prevExp.innerHTML = '<b>Experiencia:</b> Modalidad Primer Empleo (Aptitudes & Formación)';
+      }
+
+      prevLang.innerHTML = '<b>Idiomas:</b> ' + selectedLanguageText;
     }
 
-    inputName.addEventListener('input', updatePreview);
-    inputEmail.addEventListener('input', updatePreview);
-    inputCountry.addEventListener('input', updatePreview);
+    [inputName, inputPhone, inputCity, inputEmail, inputSecColegio, inputSecAno, inputPriColegio, inputPriAno, inputCustom, document.getElementById('inputExpEmpresa'), document.getElementById('inputExpCargo')].forEach(inp => {
+      if (inp) inp.addEventListener('input', updatePreview);
+    });
 
+    // Enviar formulario al bot
     document.getElementById('btnSubmit').addEventListener('click', () => {
       const name = inputName.value.trim();
+      const phone = inputPhone.value.trim();
+      const city = inputCity.value.trim();
       const email = inputEmail.value.trim();
-      const country = inputCountry.value.trim() || 'No especificado';
+
       if (!name) {
         if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-        alert('Por favor escribe tu Nombre Completo.');
+        alert('Por favor escribe tu Nombre y Apellidos.');
         inputName.focus();
         return;
       }
-      if (!email || !email.includes('@')) {
+      if (!phone) {
         if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-        alert('Por favor escribe un Correo Electrónico válido.');
-        inputEmail.focus();
+        alert('Por favor escribe tu número de Teléfono o WhatsApp.');
+        inputPhone.focus();
         return;
       }
+      if (!city) {
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+        alert('Por favor escribe tu Ciudad y País.');
+        inputCity.focus();
+        return;
+      }
+
+      const secColegio = inputSecColegio.value.trim() || 'Colegio de Educación Secundaria';
+      const secAno = inputSecAno.value.trim() || 'Graduado';
+      const secEstado = selectSecEstado.value;
+
+      const priColegio = inputPrimariaColegio.value.trim() || 'Escuela de Educación Primaria';
+      const priAno = inputPrimariaAno.value.trim() || 'Completa';
+      const priEstado = document.getElementById('selectPrimariaEstado').value;
+
+      const estudiosExtra = document.getElementById('inputEstudiosExtra').value.trim();
+
+      let targetRole = selectedCategoryTitle;
+      if (selectedCategory === 'custom' && inputCustom.value.trim()) {
+        targetRole = inputCustom.value.trim();
+      }
+
+      let expData = null;
+      if (hasExperience) {
+        expData = {
+          empresa: document.getElementById('inputExpEmpresa').value.trim() || 'Empresa Comercial / Servicios',
+          cargo: document.getElementById('inputExpCargo').value.trim() || targetRole,
+          periodo: document.getElementById('inputExpPeriodo').value.trim() || '2 años',
+          funciones: document.getElementById('inputExpFunciones').value.trim()
+        };
+      }
+
+      const payload = {
+        action: 'generate_cv',
+        cv_type: 'formal_standard',
+        name: name,
+        phone: phone,
+        city: city,
+        email: email || 'No especificado',
+        category: selectedCategory,
+        target_role: targetRole,
+        has_experience: hasExperience,
+        experience_data: expData,
+        education: {
+          secundaria: { colegio: secColegio, ano: secAno, estado: secEstado },
+          primaria: { colegio: priColegio, ano: priAno, estado: priEstado },
+          extra: estudiosExtra
+        },
+        language: selectedLanguage,
+        language_text: selectedLanguageText
+      };
+
       if (tg && tg.HapticFeedback) {
         tg.HapticFeedback.notificationOccurred('success');
       }
-      const payload = {
-        action: 'generate_cv',
-        name: name,
-        email: email,
-        country: country,
-        category: selectedCategory,
-        target_job: selectedCategoryTitle,
-        english: selectedEnglish,
-        exp_level: selectedExp
-      };
+
       if (tg && tg.sendData) {
         tg.sendData(JSON.stringify(payload));
       } else {
-        alert('Datos preparados para el bot: ' + JSON.stringify(payload));
+        alert('Hoja de vida compilada para el bot: ' + JSON.stringify(payload));
       }
     });
   </script>

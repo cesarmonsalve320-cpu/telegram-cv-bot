@@ -1,0 +1,26 @@
+{
+  "airtm": {
+    "name": "AirTM",
+    "url": "https://airtm.me/",
+    "tagline": "Dólares digitales y retiro a banco local",
+    "description": "Cuenta en dólares digitales para cobrar de Outlier, Remotasks y plataformas de IA con retiro a moneda local sin trabas bancarias."
+  },
+  "payoneer": {
+    "name": "Payoneer",
+    "url": "https://share.payoneer.com/",
+    "tagline": "Cuenta bancaria virtual en USD (ACH)",
+    "description": "Recibe pagos directos de empresas de EE.UU. y plataformas remotas (DataAnnotation, Virtual Latinos) con cuenta bancaria a tu nombre."
+  },
+  "binance": {
+    "name": "Binance P2P",
+    "url": "https://accounts.binance.com/",
+    "tagline": "Liquidez cripto/USDT a moneda local",
+    "description": "Convierte saldo en criptomonedas y stablecoins a tu banco nacional con cero comisiones en mercado P2P."
+  },
+  "hotmart": {
+    "name": "Hotmart",
+    "url": "https://hotmart.com/",
+    "tagline": "Entrenamientos y Guías de Empleo Remoto",
+    "description": "Cursos y programas de alta conversión para preparar pruebas de evaluación de IA y entrevistas en inglés."
+  }
+}

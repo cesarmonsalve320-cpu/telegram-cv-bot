@@ -390,6 +390,35 @@ VACANCY_BOOSTERS = {
             "💡 **HACK DE CONTRATACIÓN:** Los reclutadores remotos de EE.UU. buscan candidatos que conozcan **'Zendesk'**, "
             "**'SLA compliance'** y **'FRT (First Response Time)'**. Incluir estos términos reduce el filtro a cero y te coloca en la llamada final."
         )
+    },
+    "content_moderator": {
+        "id": "content_moderator",
+        "title": "Trust & Safety Content Moderator",
+        "category_label": "🛡️ Moderación de Contenido USD (Trust & Safety)",
+        "mode": "remote_ats",
+        "ats_match_score": 98,
+        "keywords": [
+            "Content Moderation", "Trust & Safety", "Policy Enforcement", "Spam Detection",
+            "Harmful Content Identification", "Data Confidentiality", "SLA Adherence",
+            "Quality Assurance (QA)", "Queue Management", "Escalation Protocols"
+        ],
+        "summary": (
+            "Detail-oriented and resilient Trust & Safety Content Moderator with proven experience in evaluating "
+            "high-volume digital content against rigorous community guidelines and global regulatory standards. "
+            "Expert in maintaining 99%+ policy precision, identifying urgent safety violations, and collaborating with cross-functional safety operations teams."
+        ),
+        "bullets": [
+            "Audited and moderated 1,500+ daily user-generated posts, images, and videos with an average QA accuracy score of 99.1%, exceeding target SLAs.",
+            "Identified, cataloged, and escalated critical policy violations and safety hazards to Tier-2 leads within 4 minutes, mitigating platform exposure.",
+            "Maintained emotional resilience and strict data confidentiality under high-volume review queues while providing policy feedback to engineering leads."
+        ],
+        "skills_tech": "Community Guidelines Enforcement, Trust & Safety Protocols, Spam & Fraud Filtering, Quality Assurance Review",
+        "skills_tools": "Internal Moderation Consoles, Zendesk Queue, JIRA, Slack, Data Annotation Platforms",
+        "skills_soft": "High Emotional Resilience, Ethical Integrity, Acute Attention to Detail, Decisiveness Under Pressure",
+        "recruiter_hack": (
+            "💡 **HACK DE CONTRATACIÓN:** En moderación de contenido y Trust & Safety remoto, los seleccionadores buscan dos métricas: "
+            "**'Policy accuracy > 98%'** y **'SLA adherence'**. Demostrar estabilidad emocional y velocidad de decisión es lo que asegura contratos en USD."
+        )
     }
 }
 
@@ -441,7 +470,11 @@ def get_vacancy_booster(booster_id: str) -> dict:
         "appen": "data_evaluator",
         "telus": "data_evaluator",
         "soporte_remoto": "customer_support_remote",
-        "cx": "customer_support_remote"
+        "cx": "customer_support_remote",
+        "moderador": "content_moderator",
+        "moderacion": "content_moderator",
+        "trust_safety": "content_moderator",
+        "moderator": "content_moderator"
     }
     
     resolved_id = aliases.get(clean_id, clean_id)
@@ -475,7 +508,8 @@ def analyze_job_offer(text: str) -> dict:
         "outlier_ai": ["outlier", "rlhf", "evaluador de ia", "entrenamiento ia", "prompt", "llm", "dataannotation", "alignerr", "inteligencia artificial"],
         "virtual_assistant": ["asistente virtual", "virtual assistant", "virtual latinos", "calendar", "inbox zero", "bilingual", "bilingue", "agenda"],
         "data_evaluator": ["appen", "telus", "uhrs", "clickworker", "relevancia", "search evaluator", "anotacion", "oneforma"],
-        "customer_support_remote": ["zendesk", "intercom", "soporte remoto", "ticket", "sla", "customer experience", "helpdesk"]
+        "customer_support_remote": ["zendesk", "intercom", "soporte remoto", "ticket", "sla", "customer experience", "helpdesk"],
+        "content_moderator": ["moderador", "moderacion", "content moderator", "trust & safety", "trust and safety", "politicas de contenido", "moderator", "safety reviewer"]
     }
 
     for booster_id, terms in keyword_map.items():
@@ -501,13 +535,31 @@ def analyze_job_offer(text: str) -> dict:
         return matched
 
     # Si no hubo coincidencia fuerte con un cargo estándar, sintetizar un Booster Inteligente Personalizado
-    # Extraer el posible cargo del texto
+    # Extraer el posible cargo del texto limpiando muletillas comunes
     lines = [l.strip() for l in text.strip().splitlines() if l.strip()]
     raw_title = lines[0] if lines else "Especialista Operativo & Profesional"
-    if len(raw_title) > 60:
-        raw_title = raw_title[:57] + "..."
+    
+    clean_title = raw_title
+    for prefix_pat in [
+        r"^(?:se\s+busca|buscamos|requerimos|se\s+solicita|se\s+requiere|convocatoria\s+para|oferta\s+(?:de\s+)?empleo\s+(?:para)?|vacante\s+(?:de)?|importante\s+empresa\s+busca)\s*:?\s*",
+        r"^(?:urgente\s*:?\s*)",
+    ]:
+        clean_title = re.sub(prefix_pat, "", clean_title, flags=re.IGNORECASE).strip()
 
-    custom_title = raw_title.title()
+    for sep in [" - ", " | ", ",", " para ", " en "]:
+        if sep in clean_title:
+            part = clean_title.split(sep)[0].strip()
+            if len(part) >= 4:
+                clean_title = part
+                break
+
+    if len(clean_title) > 50:
+        clean_title = clean_title[:47].rstrip() + "..."
+
+    if not clean_title or len(clean_title) < 3:
+        clean_title = "Especialista Operativo & Profesional"
+
+    custom_title = clean_title.title()
 
     return {
         "id": "custom",

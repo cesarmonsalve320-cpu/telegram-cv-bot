@@ -707,7 +707,7 @@
 
     function updateBoosterCard(catKey) {
       let bKey = catKey;
-      if (bKey === 'custom' || bKey === 'custom_remote') {
+      if (!BOOSTER_PRESETS[bKey]) {
         bKey = currentMode === 'formal_boxed' ? 'ventas' : 'outlier_ai';
       }
       const b = BOOSTER_PRESETS[bKey] || BOOSTER_PRESETS['ventas'];
@@ -993,14 +993,18 @@
     // Inyector de Hack ATS completo
     document.getElementById('btnAutofillHack').addEventListener('click', () => {
       let bKey = selectedCategory;
-      if (bKey === 'custom' || bKey === 'custom_remote') {
+      if (!BOOSTER_PRESETS[bKey]) {
         bKey = currentMode === 'formal_boxed' ? 'ventas' : 'outlier_ai';
       }
       const b = BOOSTER_PRESETS[bKey] || BOOSTER_PRESETS['ventas'];
 
       if (selectedCategory !== 'primer_empleo') {
         toggleExpMode(true);
-        document.getElementById('inputExpCargo').value = b.title;
+        const customTitleInput = document.getElementById('inputCustomTarget');
+        const customTitleVal = customTitleInput ? customTitleInput.value.trim() : '';
+        const roleTitle = (bKey === 'custom' || bKey === 'custom_remote') && customTitleVal ? customTitleVal : b.title;
+
+        document.getElementById('inputExpCargo').value = roleTitle;
         if (!document.getElementById('inputExpEmpresa').value.trim()) {
           document.getElementById('inputExpEmpresa').value = currentMode === 'formal_boxed' ? 'Empresa Comercial y de Servicios' : 'Outlier AI / Remote Operations';
         }
@@ -1029,7 +1033,7 @@
       setTimeout(() => { btn.innerHTML = prevHtml; }, 2200);
     });
 
-    // Analizador y adaptador de vacantes pegadas
+    // Analizador y adaptador de vacantes pegadas con ponderación inteligente
     document.getElementById('btnAnalyzeOffer').addEventListener('click', () => {
       const pasteText = document.getElementById('inputOfferPaste').value.trim();
       if (!pasteText) {
@@ -1038,16 +1042,51 @@
       }
       const clean = pasteText.toLowerCase();
 
+      const KEYWORD_MAP = {
+        ventas: ["venta", "comercial", "cajero", "caja", "pos", "datafono", "tienda", "asesor", "mostrador", "retail", "cobro"],
+        admin: ["administrativ", "recepcion", "secretari", "oficina", "radicacion", "archivo", "conmutador", "digitacion", "factura"],
+        bodega: ["bodega", "almacen", "inventario", "picking", "packing", "despacho", "mercancia", "peps", "estibador", "logistica", "carga"],
+        servicio: ["servicio al cliente", "call center", "atencion al cliente", "pqr", "reclamo", "telefonic", "csat", "fcr", "soporte presencial"],
+        seguridad: ["seguridad", "vigilante", "guarda", "cctv", "minuta", "ronda", "control de acceso", "vigilancia", "patrullaje"],
+        transporte: ["conductor", "chofer", "repartidor", "mensajer", "moto", "vehiculo", "entrega", "ruta", "flete", "manejo defensivo"],
+        operario: ["operario", "planta", "produccion", "fabrica", "ensamble", "envasado", "5s", "epp", "manufactura", "maquinaria"],
+        hosteleria: ["mesero", "cocina", "restaurante", "comida", "comanda", "barista", "camarero", "bpm", "platos", "hosteleria"],
+        primer_empleo: ["primer empleo", "sin experiencia", "aprendiz", "practicante", "estudiante", "joven", "egresado"],
+        outlier_ai: ["outlier", "rlhf", "evaluador de ia", "entrenamiento ia", "prompt", "llm", "dataannotation", "alignerr", "inteligencia artificial"],
+        virtual_assistant: ["asistente virtual", "virtual assistant", "virtual latinos", "calendar", "inbox zero", "bilingual", "bilingue", "agenda"],
+        data_evaluator: ["appen", "telus", "uhrs", "clickworker", "relevancia", "search evaluator", "anotacion", "oneforma"],
+        customer_support_remote: ["zendesk", "intercom", "soporte remoto", "ticket", "sla", "customer experience", "helpdesk"],
+        content_moderator: ["moderador", "moderacion", "content moderator", "trust & safety", "trust and safety", "politicas", "moderator"]
+      };
+
+      const scores = {};
+      for (const k in KEYWORD_MAP) scores[k] = 0;
+
+      for (const cat in KEYWORD_MAP) {
+        const terms = KEYWORD_MAP[cat];
+        terms.forEach(t => {
+          if (clean.includes(t)) {
+            scores[cat] += 3;
+            try {
+              const regex = new RegExp('\\b' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+              if (regex.test(clean)) scores[cat] += 2;
+            } catch (e) {}
+          }
+        });
+      }
+
       let bestCat = null;
-      for (const cat in BOOSTER_PRESETS) {
-        const p = BOOSTER_PRESETS[cat];
-        if (clean.includes(cat) || clean.includes(p.title.toLowerCase()) || p.keywords.some(k => clean.includes(k.toLowerCase()))) {
+      let maxScore = 0;
+      for (const cat in scores) {
+        if (scores[cat] > maxScore) {
+          maxScore = scores[cat];
           bestCat = cat;
-          break;
         }
       }
-      if (!bestCat) {
-        bestCat = currentMode === 'formal_boxed' ? 'ventas' : 'outlier_ai';
+
+      const isRemoteCandidate = /remoto|remote|usd|dolares|dollars|english|bilingual|home|home-office/i.test(clean);
+      if (maxScore < 3) {
+        bestCat = isRemoteCandidate ? 'custom_remote' : 'custom';
       }
 
       const remoteKeys = ['outlier_ai', 'virtual_assistant', 'data_evaluator', 'customer_support_remote', 'content_moderator', 'custom_remote'];
@@ -1064,6 +1103,22 @@
         card.classList.add('selected');
         selectedCategory = card.dataset.cat;
         selectedCategoryTitle = card.dataset.title;
+      }
+
+      // Si es un rol personalizado, extraer el título limpio y rellenar el input personalizado
+      if (bestCat === 'custom' || bestCat === 'custom_remote') {
+        const customGroup = document.getElementById('customTargetGroup');
+        const customInput = document.getElementById('inputCustomTarget');
+        if (customGroup && customInput) {
+          customGroup.style.display = 'block';
+          let firstLine = pasteText.split('\n')[0].replace(/^(?:se busca|buscamos|requerimos|se solicita|se requiere|convocatoria para|oferta de empleo|vacante de|urgente)\s*:?\s*/i, '').trim();
+          if (firstLine.includes(' para ')) firstLine = firstLine.split(' para ')[0].trim();
+          if (firstLine.includes(' en ')) firstLine = firstLine.split(' en ')[0].trim();
+          customInput.value = (firstLine.length > 40 ? firstLine.substring(0, 37) + '...' : firstLine) || 'Especialista Profesional';
+        }
+      } else {
+        const customGroup = document.getElementById('customTargetGroup');
+        if (customGroup) customGroup.style.display = 'none';
       }
 
       updateBoosterCard(selectedCategory);

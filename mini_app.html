@@ -142,6 +142,32 @@
     }
     .btn-submit:active { transform: translateY(1px); background: var(--accent-blue-hover); }
     .footer-note { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 12px; line-height: 1.4; }
+
+    /* Booster Chips & Container */
+    .booster-chip {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #bfdbfe;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .booster-chip:hover {
+      background: rgba(37, 99, 235, 0.3);
+      border-color: #3b82f6;
+      color: #ffffff;
+    }
+    .booster-chip.added {
+      background: #2563eb;
+      border-color: #60a5fa;
+      color: #ffffff;
+    }
   </style>
 </head>
 <body>
@@ -283,6 +309,37 @@
     <div class="input-group" id="customTargetGroup" style="display: none; margin-top: 12px;">
       <label>Escribe el cargo o perfil deseado:</label>
       <input type="text" id="inputCustomTarget" class="input-field" placeholder="Ej: Especialista de Datos / Desarrollador..." maxlength="50">
+    </div>
+
+    <!-- HACK DE CONTRATACIÓN & OPTIMIZADOR DE VACANTE -->
+    <div class="booster-container" id="boosterContainer" style="margin-top: 14px; background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--radius-sm); padding: 12px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+        <span style="font-size: 11px; font-weight: 800; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.5px;">🎯 Hack de Vacante & Palabras Clave ATS</span>
+        <span id="boosterAtsScore" style="font-size: 10px; font-weight: 700; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 999px; border: 1px solid rgba(16, 185, 129, 0.3);">🟢 98% Match ATS</span>
+      </div>
+      <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">
+        Pega tu vacante o elige un área arriba para extraer palabras clave exactas y redactar tus logros con fórmula Harvard:
+      </p>
+
+      <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+        <input type="text" id="inputOfferPaste" class="input-field" placeholder="Pegar vacante (ej: Cajero, Bodega, Asistente, Outlier...)" style="font-size: 11.5px; padding: 7px 10px;">
+        <button type="button" id="btnAnalyzeOffer" style="background: #2563eb; color: white; border: none; border-radius: var(--radius-sm); padding: 0 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; white-space: nowrap;">⚡ Adaptar</button>
+      </div>
+
+      <div style="margin-bottom: 8px;">
+        <span style="font-size: 10.5px; font-weight: 700; color: #93c5fd; display: block; margin-bottom: 4px;">🏷️ Palabras Clave indexables para esta vacante (Toca para agregar a funciones):</span>
+        <div id="boosterChipsContainer" style="display: flex; flex-wrap: wrap; gap: 4px;">
+          <!-- dynamic chips -->
+        </div>
+      </div>
+
+      <div id="boosterRecruiterTip" style="font-size: 10.5px; color: #cbd5e1; background: rgba(0,0,0,0.25); border-left: 3px solid #3b82f6; padding: 6px 8px; border-radius: 4px; margin-bottom: 10px; line-height: 1.35;">
+        <!-- recruiter tip text -->
+      </div>
+
+      <button type="button" id="btnAutofillHack" style="width: 100%; background: linear-gradient(135deg, #1d4ed8, #2563eb); color: white; border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-sm); padding: 9px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+        ✨ Inyectar Hack Completo en mi CV (Resumen + Logros XYZ)
+      </button>
     </div>
   </div>
 
@@ -453,6 +510,238 @@
     let selectedLanguageText = 'Español (Nativo)';
     let hasExperience = true;
 
+    const BOOSTER_PRESETS = {
+      ventas: {
+        title: "Asesor Comercial, Ventas & Cajero",
+        score: "98% Match ATS",
+        keywords: ["Arqueo de caja", "Cierre diario", "Facturación POS", "Atención al cliente", "Datáfono", "Venta cruzada", "Inventario PEPS", "Fidelización"],
+        summary: "Asesor Comercial y Cajero orientado a resultados con experiencia en atención personalizada a más de 60 clientes diarios, gestión de caja POS y arqueos con 100% de cuadre sin faltantes.",
+        bullets: [
+          "Ejecuté cobros en efectivo, datáfonos y transferencias con registro en POS, manteniendo arqueos y cierres de caja con 0% de faltantes en más de 500 jornadas.",
+          "Superé la meta mensual de ventas en un 18% promedio mediante asesoría consultiva, venta cruzada (cross-selling) y rápida resolución de dudas.",
+          "Gestioné la recepción, etiquetado, exhibición y rotación de mercancía en góndolas, reduciendo tiempos de reposición en un 25%."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> Los filtros ATS descartan CVs sin 'Arqueo de caja' y 'Manejo de POS'. Demuestra que el dinero está seguro en tus manos."
+      },
+      admin: {
+        title: "Auxiliar Administrativo & Recepción",
+        score: "97% Match ATS",
+        keywords: ["Gestión documental", "Radicación de facturas", "Archivo físico y digital", "Conmutador", "Digitación ágil (65 PPM)", "Excel", "Confidencialidad"],
+        summary: "Auxiliar Administrativo y de Oficina metódico con experiencia en gestión documental, radicación de facturación, atención de conmutador y recepción presencial de visitantes y proveedores.",
+        bullets: [
+          "Gestioné y radiqué más de 120 facturas y documentos corporativos semanales en archivo digital y físico, reduciendo el tiempo de búsqueda en un 30%.",
+          "Atendí conmutador con flujo superior a 50 llamadas diarias y recepción presencial, manteniendo un índice de satisfacción del 98%.",
+          "Elaboré oficios formales, actas de reunión y planillas de control en Excel y Word con 0 errores ortográficos y estricta confidencialidad."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> Incluye 'Radicación de facturas' y 'Digitación ágil'. Las empresas descartan a quienes solo ponen 'manejo de PC'."
+      },
+      bodega: {
+        title: "Auxiliar de Almacén, Bodega & Logística",
+        score: "99% Match ATS",
+        keywords: ["Control de inventarios", "Método PEPS/FIFO", "Picking y packing", "Recepción y despacho", "Lector código de barras", "Normas SST / 5S", "Estibador hidráulico"],
+        summary: "Auxiliar de Bodega y Logística con destreza física y rigor operativo en recepción de mercancías, descargue, alistamiento ágil de pedidos (picking/packing) y rotación PEPS.",
+        bullets: [
+          "Supervisé el descargue, verificación física y cotejo de remisiones de más de 4 toneladas semanales de mercancía, garantizando 100% de concordancia.",
+          "Ejecuté picking y packing de más de 85 pedidos diarios con una tasa de precisión del 99.4%, cumpliendo estrictamente con las salidas de ruta.",
+          "Implementé zonificación bajo norma PEPS y 5S en estanterías, reduciendo el deterioro de producto y agilizando conteos cíclicos en un 20%."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> Las palabras mágicas son 'Método PEPS' y 'Precisión en picking > 99%'. Te sitúan como un bodeguero profesional de primer nivel."
+      },
+      servicio: {
+        title: "Agente de Servicio al Cliente & Call Center",
+        score: "98% Match ATS",
+        keywords: ["Resolución en primer contacto (FCR)", "Gestión de PQR", "Métricas CSAT/NPS", "Escucha activa", "Comunicación asertiva", "Sistemas CRM", "Desescalamiento"],
+        summary: "Agente de Servicio al Cliente con vocación empática, dicción clara y destreza en canales presenciales, telefónicos y digitales. Especialista en resolución rápida de PQR y CSAT > 95%.",
+        bullets: [
+          "Atendí un promedio de 75 interacciones diarias (llamadas, chat y presencial) logrando una tasa de resolución en primer contacto (FCR) del 89%.",
+          "Gestioné, tipifiqué y di trazabilidad a casos de PQR en plataforma CRM, reduciendo los tiempos de respuesta y escalamiento en un 25%.",
+          "Mantuve una calificación promedio de satisfacción del cliente (CSAT) del 96% mediante escucha activa y empatía."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> Los supervisores filtran por 'FCR' y 'CSAT'. Si estas siglas están en tu CV, pasas directo a entrevista."
+      },
+      operario: {
+        title: "Operario de Producción & Planta Industrial",
+        score: "97% Match ATS",
+        keywords: ["Línea de ensamble continuo", "Control de calidad visual", "Normas 5S", "Normas SST", "Superación de cuota diaria", "Empaque y sellado", "Uso de EPP"],
+        summary: "Operario de Producción Industrial dinámico y con destreza manual para líneas de ensamble continuo, envasado y control de calidad bajo normas 5S y SST.",
+        bullets: [
+          "Operé puestos críticos en línea de manufactura y empaque continuo, contribuyendo a superar el 105% de la cuota diaria programada.",
+          "Efectué controles de calidad visual por muestreo, separando piezas disconformes para evitar reprocesos.",
+          "Acaté cabalmente las normas de SST y metodología 5S en la estación asignada, registrando cero accidentes laborales."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> Destacar 'Cero accidentes' y 'Superación de cuota > 100%' es el factor decisivo para jefes de planta."
+      },
+      seguridad: {
+        title: "Guarda de Seguridad & Control de Accesos",
+        score: "97% Match ATS",
+        keywords: ["Control de accesos", "Minuta de guardia", "Rondas perimetrales", "Monitoreo CCTV", "Prevención de pérdidas", "Cero siniestros", "Radiocomunicación"],
+        summary: "Guarda de Seguridad y Vigilancia Privada caracterizado por disciplina férrea, honradez intachable, sentido de alerta preventiva y control riguroso de accesos.",
+        bullets: [
+          "Controlé y registré minuciosamente el ingreso y salida de más de 200 personas y automotores diarios con 100% de apego a las normas.",
+          "Efectué rondas periódicas de inspección perimetral y chequeo de accesos críticos, manteniendo un récord de 0 siniestros.",
+          "Supervisé monitores de CCTV y radiocomunicación, coordinando respuestas preventivas inmediatas con compostura y autoridad respetuosa."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> El término clave es 'Récord de 0 siniestros' y 'Diligenciamiento impecable de minuta'."
+      },
+      hosteleria: {
+        title: "Auxiliar de Cocina, Mesero & Hostelería",
+        score: "98% Match ATS",
+        keywords: ["Buenas Prácticas de Manufactura (BPM)", "Mise en place", "Atención de comensales", "Toma de comandas", "Manejo de datáfono", "Desinfección", "Tiempos ágiles"],
+        summary: "Auxiliar de Servicio Gastronómico y Mesero con vocación de servicio, rapidez física y conocimientos certificados en manipulación higiénica de alimentos (BPM) y mise en place.",
+        bullets: [
+          "Atendí de forma simultánea hasta 8 mesas en horas pico de servicio, garantizando tiempos de despacho inferiores a 14 minutos.",
+          "Apoyé el alistamiento previo de materias primas (mise en place), porcionado y cortes respetando al 100% las normativas de BPM.",
+          "Gestioné comanderos electrónicos y cobro de cuentas con efectivo y datáfono con cero discrepancias."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> Mencionar 'BPM' y 'Tiempos de despacho < 15 min' garantiza que el administrador del restaurante te contrate."
+      },
+      transporte: {
+        title: "Conductor, Repartidor & Mensajería",
+        score: "98% Match ATS",
+        keywords: ["Manejo defensivo", "Optimización de rutas", "Nomenclatura urbana", "Waze / GPS", "Recaudo contraentrega (COD)", "Puntualidad en entregas", "Cuidado de la carga"],
+        summary: "Conductor y Repartidor Urbano puntual y con amplio conocimiento de rutas urbanas. Experto en entregas a tiempo, manejo defensivo y recaudo contraentrega (COD).",
+        bullets: [
+          "Completé diariamente más de 45 entregas de paquetes con una tasa de puntualidad del 97%, planificando recorridos con GPS.",
+          "Efectué recaudos de dinero contraentrega (COD) con liquidación de planillas al 100% de exactitud y custodia rigurosa.",
+          "Realicé inspecciones mecánicas preventivas diarias asegurando operatividad continua y cero infracciones de tránsito."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> Colocar 'Manejo defensivo sin comparendos' y 'Recaudo contraentrega al 100%' despeja cualquier duda del empleador."
+      },
+      primer_empleo: {
+        title: "Candidato Primer Empleo",
+        score: "96% Match ATS",
+        keywords: ["Rápido aprendizaje", "Puntualidad estricta (100%)", "Acatamiento de instrucciones", "Disponibilidad horaria total", "Trabajo en equipo", "Manejo ofimático"],
+        summary: "Bachiller graduado disciplinado con sólida base ética, puntualidad intachable y gran motivación para iniciar su vida laboral con rápida capacidad de aprendizaje.",
+        bullets: [
+          "Lideré y participé activamente en proyectos académicos y grupales, cumpliendo al 100% los plazos y pautas de entrega con alto sentido de responsabilidad.",
+          "Demostré facilidad para asimilar con rapidez nuevas herramientas tecnológicas, software ofimático y normas operativas bajo supervisión.",
+          "Mantuve una trayectoria formativa con récord de puntualidad y asistencia superior al 98%, con disponibilidad horaria total e inmediata."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> No inventes empresas falsas. Resalta 'Puntualidad comprobada > 98%' y 'Disponibilidad inmediata total'."
+      },
+      custom: {
+        title: "Oficio / Cargo a Medida",
+        score: "96% Match ATS",
+        keywords: ["Cumplimiento de metas", "Optimización de procesos", "Atención al detalle", "Puntualidad estricta", "Resolución de problemas", "Normas operativas"],
+        summary: "Profesional calificado y comprometido con amplia experiencia en cumplimiento de objetivos operativos, aplicación de normas de calidad y trabajo en equipo.",
+        bullets: [
+          "Lideré y ejecuté las actividades clave del puesto, superando las metas de desempeño fijadas en un 15% mediante optimización sistemática.",
+          "Implementé controles de calidad y seguimiento riguroso en procedimientos operativos, asegurando un índice de cumplimiento del 99%.",
+          "Fomenté una cultura de comunicación constructiva y trabajo en equipo con 100% de puntualidad."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> Emplea siempre métricas del 99% y fórmulas de logro 'Logré X mediante Y logrando Z%'."
+      },
+      outlier_ai: {
+        title: "AI Training Specialist & Content Reviewer",
+        score: "99% Match ATS",
+        keywords: ["RLHF", "Prompt Engineering", "LLM Evaluation", "Fact-checking", "Hallucination Detection", "Analytical Rationales", "Rubric Compliance", "Red Teaming"],
+        summary: "AI Training Specialist with expertise in Reinforcement Learning from Human Feedback (RLHF), LLM output evaluation, and granular analytical rationales in Spanish and English.",
+        bullets: [
+          "Evaluated and benchmarked over 450 complex LLM responses across diverse topics, applying strict RLHF rubrics to detect hallucinations with a 96% audit pass rate.",
+          "Authored granular analytical rationales justifying preference rankings, identifying subtle reasoning flaws, and ensuring factual grounding.",
+          "Designed adversarial test prompts (Red Teaming) to stress-test frontier conversational models, documenting edge cases and compliance vulnerabilities."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> Sin las palabras 'RLHF', 'Hallucination detection' y 'Detailed rationales', el algoritmo de Outlier te descarta en 2 segundos."
+      },
+      virtual_assistant: {
+        title: "Bilingual Executive Assistant",
+        score: "98% Match ATS",
+        keywords: ["Calendar Management", "Executive Support", "Inbox Zero", "CRM Maintenance", "Google Workspace", "Slack / Asana", "Timezone Coordination", "English C1"],
+        summary: "Proactive Bilingual Executive Assistant (English C1 / Spanish Native) with experience providing remote operational support to North American founders and executive teams.",
+        bullets: [
+          "Orchestrated complex executive calendars across EST, PST, and GMT timezones, coordinating 25+ weekly meetings with zero scheduling conflicts.",
+          "Maintained Inbox Zero across multiple executive email accounts processing 120+ daily inquiries with professional corporate communication.",
+          "Optimized client onboarding workflows within Asana and HubSpot CRM, accelerating turnaround times by 35%."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> Virtual Latinos exige formato Harvard de 1 columna con 'Calendar management', 'Inbox Zero' y número exacto de reuniones semanales."
+      },
+      data_evaluator: {
+        title: "Search & Data Quality Evaluator",
+        score: "98% Match ATS",
+        keywords: ["Search Query Intent", "Relevance Rating", "UHRS HitApps", "Spam Accuracy Rate", "Quality Guidelines Compliance", "Ad Quality", "Data Integrity"],
+        summary: "Search Quality and Data Relevance Evaluator experienced in analyzing user query intent and maintaining high spam accuracy scores in fast-paced UHRS environments.",
+        bullets: [
+          "Completed over 6,000 search relevance and categorization microtasks (HitApps), maintaining an audited Spam Accuracy rate consistently above 93%.",
+          "Evaluated web search results and local listings adhering strictly to 160+ page search engine quality rating guidelines.",
+          "Audited digital display ads for policy compliance and landing page quality with review velocity under 40 seconds."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> En Appen y Telus, tu CV debe mostrar 'Spam Accuracy > 92%' para tener acceso prioritario a proyectos de 14 USD/h."
+      },
+      customer_support_remote: {
+        title: "Customer Experience Specialist",
+        score: "98% Match ATS",
+        keywords: ["Zendesk", "Intercom", "SLA Compliance", "Ticket Resolution", "First Response Time (FRT)", "CSAT > 95%", "Remote Helpdesk", "Troubleshooting"],
+        summary: "Customer Experience Specialist experienced in delivering remote technical and billing support via Zendesk and Intercom, sustaining CSAT > 95% and SLA > 98%.",
+        bullets: [
+          "Resolved 65+ support tickets daily in Zendesk with an average First Response Time (FRT) under 11 minutes and 98% SLA adherence.",
+          "Maintained a 97% CSAT score across 1,800+ customer interactions through structured empathetic communication.",
+          "Authored 16 internal and customer-facing Knowledge Base articles, reducing repeat ticket volume by 14%."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> Los reclutadores buscan 'Zendesk', 'SLA compliance' y 'FRT'. Incluir estas métricas te abre las puertas a entrevistas remotas."
+      },
+      content_moderator: {
+        title: "Trust & Safety Content Moderator",
+        score: "97% Match ATS",
+        keywords: ["Content Moderation", "Trust & Safety", "Policy Enforcement", "Spam Detection", "High Volume Auditing", "Data Privacy", "Quality Assurance"],
+        summary: "Trust and Safety Content Moderator skilled in reviewing digital content against strict community standards, detecting violations, and upholding user safety.",
+        bullets: [
+          "Audited over 1,500 daily user-generated posts, images, and comments against community standards with a 98.5% policy accuracy score.",
+          "Identified and escalated urgent policy violations and safety hazards to Tier-2 leads within 5 minutes.",
+          "Maintained emotional resilience and strict data confidentiality under high-volume review queues."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> La clave en moderación es 'Policy accuracy > 98%' y 'Trust & Safety'."
+      },
+      custom_remote: {
+        title: "Remote Specialist",
+        score: "96% Match ATS",
+        keywords: ["Remote Collaboration", "Asynchronous Workflow", "Slack / Zoom", "Time Management", "Self-starter", "English Fluency", "SLA Adherence"],
+        summary: "Autonomous Remote Professional skilled in cross-border collaboration, asynchronous project execution, and high-quality deliverables.",
+        bullets: [
+          "Executed remote deliverables with a 98% on-time completion rate across cross-functional distributed teams.",
+          "Maintained proactive communication across Slack and project management suites to align with international KPIs.",
+          "Adapted swiftly to evolving project guidelines and technical toolkits in autonomous settings."
+        ],
+        tip: "💡 <b>Tip de Contratación:</b> En remoto se busca autonomía comprobada y comunicación asíncrona impecable."
+      }
+    };
+
+    function updateBoosterCard(catKey) {
+      let bKey = catKey;
+      if (bKey === 'custom' || bKey === 'custom_remote') {
+        bKey = currentMode === 'formal_boxed' ? 'ventas' : 'outlier_ai';
+      }
+      const b = BOOSTER_PRESETS[bKey] || BOOSTER_PRESETS['ventas'];
+      const scoreBadge = document.getElementById('boosterAtsScore');
+      if (scoreBadge) scoreBadge.textContent = '🟢 ' + b.score;
+
+      const chipsBox = document.getElementById('boosterChipsContainer');
+      if (chipsBox) {
+        chipsBox.innerHTML = '';
+        b.keywords.forEach(kw => {
+          const chip = document.createElement('span');
+          chip.className = 'booster-chip';
+          chip.textContent = '+ ' + kw;
+          chip.addEventListener('click', () => {
+            const funcInput = document.getElementById('inputExpFunciones');
+            let val = funcInput.value.trim();
+            if (!val.includes(kw)) {
+              funcInput.value = val ? (val.replace(/\.$/, '') + ', ' + kw + '.') : (kw + '.');
+              chip.classList.add('added');
+              chip.textContent = '✓ ' + kw;
+              updatePreview();
+              if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            }
+          });
+          chipsBox.appendChild(chip);
+        });
+      }
+
+      const tipBox = document.getElementById('boosterRecruiterTip');
+      if (tipBox) {
+        tipBox.innerHTML = b.tip;
+      }
+    }
+
     function switchMode(mode) {
       currentMode = mode === 'remote' ? 'remote_ats' : 'formal_boxed';
       const tabFormal = document.getElementById('tabFormal');
@@ -541,6 +830,7 @@
       document.getElementById('customTargetGroup').style.display = 'none';
       if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
       updatePreview();
+      updateBoosterCard(selectedCategory);
     }
 
     // Category click handler
@@ -570,6 +860,7 @@
 
           if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
           updatePreview();
+          updateBoosterCard(selectedCategory);
         });
       });
     }
@@ -699,6 +990,89 @@
       if (inp) inp.addEventListener('input', updatePreview);
     });
 
+    // Inyector de Hack ATS completo
+    document.getElementById('btnAutofillHack').addEventListener('click', () => {
+      let bKey = selectedCategory;
+      if (bKey === 'custom' || bKey === 'custom_remote') {
+        bKey = currentMode === 'formal_boxed' ? 'ventas' : 'outlier_ai';
+      }
+      const b = BOOSTER_PRESETS[bKey] || BOOSTER_PRESETS['ventas'];
+
+      if (selectedCategory !== 'primer_empleo') {
+        toggleExpMode(true);
+        document.getElementById('inputExpCargo').value = b.title;
+        if (!document.getElementById('inputExpEmpresa').value.trim()) {
+          document.getElementById('inputExpEmpresa').value = currentMode === 'formal_boxed' ? 'Empresa Comercial y de Servicios' : 'Outlier AI / Remote Operations';
+        }
+        if (!document.getElementById('inputExpPeriodo').value.trim()) {
+          document.getElementById('inputExpPeriodo').value = '2021 - 2024 (3 años)';
+        }
+        document.getElementById('inputExpFunciones').value = b.bullets.join(' ');
+      } else {
+        toggleExpMode(false);
+      }
+
+      updatePreview();
+
+      const chips = document.querySelectorAll('.booster-chip');
+      chips.forEach(c => {
+        c.classList.add('added');
+        if (!c.textContent.startsWith('✓')) {
+          c.textContent = c.textContent.replace('+', '✓');
+        }
+      });
+
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+      const btn = document.getElementById('btnAutofillHack');
+      const prevHtml = btn.innerHTML;
+      btn.innerHTML = '✅ ¡Hack ATS Inyectado con Éxito!';
+      setTimeout(() => { btn.innerHTML = prevHtml; }, 2200);
+    });
+
+    // Analizador y adaptador de vacantes pegadas
+    document.getElementById('btnAnalyzeOffer').addEventListener('click', () => {
+      const pasteText = document.getElementById('inputOfferPaste').value.trim();
+      if (!pasteText) {
+        alert('Por favor escribe o pega el texto o título de la vacante.');
+        return;
+      }
+      const clean = pasteText.toLowerCase();
+
+      let bestCat = null;
+      for (const cat in BOOSTER_PRESETS) {
+        const p = BOOSTER_PRESETS[cat];
+        if (clean.includes(cat) || clean.includes(p.title.toLowerCase()) || p.keywords.some(k => clean.includes(k.toLowerCase()))) {
+          bestCat = cat;
+          break;
+        }
+      }
+      if (!bestCat) {
+        bestCat = currentMode === 'formal_boxed' ? 'ventas' : 'outlier_ai';
+      }
+
+      const remoteKeys = ['outlier_ai', 'virtual_assistant', 'data_evaluator', 'customer_support_remote', 'content_moderator', 'custom_remote'];
+      if (remoteKeys.includes(bestCat)) {
+        switchMode('remote');
+      } else {
+        switchMode('formal');
+      }
+
+      const grid = currentMode === 'formal_boxed' ? document.getElementById('categoryGridFormal') : document.getElementById('categoryGridRemote');
+      const card = grid.querySelector(`[data-cat="${bestCat}"]`);
+      if (card) {
+        grid.querySelectorAll('.category-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedCategory = card.dataset.cat;
+        selectedCategoryTitle = card.dataset.title;
+      }
+
+      updateBoosterCard(selectedCategory);
+      document.getElementById('btnAutofillHack').click();
+
+      const prevBox = document.querySelector('.preview-box');
+      if (prevBox) prevBox.scrollIntoView({ behavior: 'smooth' });
+    });
+
     // Enviar formulario al bot
     document.getElementById('btnSubmit').addEventListener('click', () => {
       const name = inputName.value.trim();
@@ -767,6 +1141,8 @@
         };
       }
 
+      const boosterData = BOOSTER_PRESETS[selectedCategory] || null;
+
       const payload = {
         action: 'generate_cv',
         cv_type: currentMode,
@@ -780,7 +1156,9 @@
         experience_data: expData,
         education: educationPayload,
         language: selectedLanguage,
-        language_text: selectedLanguageText
+        language_text: selectedLanguageText,
+        booster_data: boosterData,
+        boosted_summary: boosterData ? boosterData.summary : null
       };
 
       if (tg && tg.HapticFeedback) {
@@ -793,6 +1171,9 @@
         alert('Datos enviados al bot (' + currentMode + '): ' + JSON.stringify(payload));
       }
     });
+
+    // Inicializar el optimizador según la vacante predeterminada
+    updateBoosterCard(selectedCategory);
   </script>
 </body>
 </html>

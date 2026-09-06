@@ -61,6 +61,12 @@ from autopilot_catalog import (
     get_autopilot_jobs_catalog
 )
 
+from vacancy_booster import (
+    VACANCY_BOOSTERS,
+    get_vacancy_booster,
+    analyze_job_offer
+)
+
 import requests
 
 # Logging setup
@@ -109,6 +115,7 @@ KIT_MAESTRO_BANNER_PATH = os.path.join(BASE_DIR, 'banner_kit_maestro.jpg')
 # Constantes de Botones del Teclado Inferior Persistente (Dock Ergonómico)
 BTN_BOTTOM_CV = "📄 Crear mi CV ATS"
 BTN_BOTTOM_MINI_APP = "🌐 Mini App CV"
+BTN_BOTTOM_BOOST = "🎯 Hacks de Vacante (Boost)"
 BTN_BOTTOM_PACK = "🎁 Refer & Earn (Pack)"
 BTN_BOTTOM_CHANNEL = "📢 Convocatorias USD"
 BTN_BOTTOM_KIT = "📥 Kit Maestro (PDF)"
@@ -121,9 +128,10 @@ def get_main_reply_keyboard(user_id=None):
     """Genera el teclado táctil inferior persistente adaptado a ergonomía móvil con Mini App integrada."""
     buttons = [
         [KeyboardButton(BTN_BOTTOM_CV), KeyboardButton(BTN_BOTTOM_MINI_APP, web_app=WebAppInfo(url=MINI_APP_URL))],
-        [KeyboardButton(BTN_BOTTOM_PACK), KeyboardButton(BTN_BOTTOM_CHANNEL)],
-        [KeyboardButton(BTN_BOTTOM_KIT), KeyboardButton(BTN_BOTTOM_GUIDE)],
-        [KeyboardButton(BTN_BOTTOM_ATS), KeyboardButton(BTN_BOTTOM_ALERTS)]
+        [KeyboardButton(BTN_BOTTOM_BOOST), KeyboardButton(BTN_BOTTOM_PACK)],
+        [KeyboardButton(BTN_BOTTOM_CHANNEL), KeyboardButton(BTN_BOTTOM_KIT)],
+        [KeyboardButton(BTN_BOTTOM_GUIDE), KeyboardButton(BTN_BOTTOM_ATS)],
+        [KeyboardButton(BTN_BOTTOM_ALERTS)]
     ]
     if user_id and is_admin(user_id):
         buttons.append([KeyboardButton(BTN_BOTTOM_ADMIN)])
@@ -558,7 +566,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     save_subscriber(user)
     context.user_data.clear()
 
-    # Soporte para deep-linking: /start cv o /start ref_USERID
+    # Soporte para deep-linking: /start cv, /start boost o /start ref_USERID
     if context.args:
         arg = context.args[0].lower()
         if arg.startswith('ref'):
@@ -567,16 +575,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             msg = update.message or (update.callback_query.message if update.callback_query else None)
             if msg:
                 return await start_cv_step_1(msg, context)
+        elif arg.startswith('boost') or arg.startswith('hack'):
+            return await boost_menu_callback(update, context)
 
     first_name = user.first_name or "colega"
 
     welcome_text = (
-        f"🏛️ **SISTEMA DE EMPLEABILIDAD REMOTA & CV ATS**\n"
+        f"🏛️ **SISTEMA DE EMPLEABILIDAD & CV ATS DE ÉLITE**\n"
         f"───────────────────────────────────\n"
-        f"Hola, **{first_name}**. Bienvenido a la plataforma de optimización laboral en dólares.\n\n"
-        f"▸ **El 85% de los CVs son descartados** por analizadores ópticos y filtros ATS antes de que los lea una persona.\n"
-        f"▸ Este bot compila tu perfil bajo **estándares Harvard** (1 columna pura, fórmulas XYZ cuantitativas y palabras clave indexables) "
-        f"adaptado a convocatorias activas (Outlier AI, DataAnnotation, Remotasks, Virtual Latinos, etc.).\n\n"
+        f"Hola, **{first_name}**. Bienvenido a la plataforma de optimización laboral y contratación.\n\n"
+        f"▸ **El 85% de los CVs son descartados** por filtros ATS antes de que los lea una persona.\n"
+        f"▸ Este bot compila tu CV bajo **estándares Harvard** (1 columna, fórmulas XYZ cuantitativas y palabras clave indexables) "
+        f"o en formato **Hoja de Vida Formal** en cajas para comercios y empresas tradicionales.\n"
+        f"▸ 🎯 **Optimizador según Vacante:** Usa **/boost** o el botón '🎯 Hacks de Vacante' para obtener las palabras clave exactas y logros probados según el trabajo al que aspiras.\n\n"
         f"👇 **Toca una opción del menú inferior para comenzar:**"
     )
 
@@ -663,6 +674,269 @@ async def why_ats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text(text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
     else:
         await msg.reply_text(text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+# ========================================================
+# Asistente Inteligente de Hacks de Contratación & Booster según Vacante
+# ========================================================
+
+async def boost_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Muestra el menú inteligente de Hacks de Contratación & Optimizador según Vacante."""
+    query = update.callback_query
+    if query:
+        await query.answer("Cargando Optimizador de Vacantes...")
+
+    context.user_data['awaiting_job_offer'] = False
+
+    text = (
+        "🎯 **OPTIMIZADOR SEGÚN VACANTE • HACKS DE CONTRATACIÓN ATS**\n"
+        "───────────────────────────────────\n"
+        "¿Sabías que el **85% de los currículums son descartados en 6 segundos** porque no contienen las "
+        "palabras clave técnicas exactas que busca el software ATS o el seleccionador?\n\n"
+        "Este asistente es tu **'trampa legítima de contratación'**:\n"
+        "▸ Inyecta **palabras clave ATS obligatorias** para superar los filtros.\n"
+        "▸ Fórmulas cuantitativas Harvard XYZ (*'Logré X medido por Y ejecutando Z'*).\n"
+        "▸ Adaptado a empleos tradicionales (Comercio, Bodega, Operarios) y remotos en USD (IA, Asistente).\n\n"
+        "👇 **Selecciona tu área laboral o pega una oferta de empleo para adaptarlo:**"
+    )
+
+    keyboard = [
+        [
+            InlineKeyboardButton("🛒 Ventas & Caja", callback_data="boost_role_ventas"),
+            InlineKeyboardButton("📁 Aux. Administrativo", callback_data="boost_role_admin")
+        ],
+        [
+            InlineKeyboardButton("📦 Bodega & Logística", callback_data="boost_role_bodega"),
+            InlineKeyboardButton("🎧 Atención al Cliente", callback_data="boost_role_servicio")
+        ],
+        [
+            InlineKeyboardButton("🛡️ Guarda de Seguridad", callback_data="boost_role_seguridad"),
+            InlineKeyboardButton("🚗 Conductor & Reparto", callback_data="boost_role_transporte")
+        ],
+        [
+            InlineKeyboardButton("⚙️ Operario de Planta", callback_data="boost_role_operario"),
+            InlineKeyboardButton("🍽️ Cocina & Mesero", callback_data="boost_role_hosteleria")
+        ],
+        [
+            InlineKeyboardButton("🌱 Primer Empleo (Sin exp.)", callback_data="boost_role_primer_empleo"),
+            InlineKeyboardButton("🤖 Evaluador IA (USD)", callback_data="boost_role_outlier_ai")
+        ],
+        [
+            InlineKeyboardButton("💼 Asistente Virtual USD", callback_data="boost_role_virtual_assistant"),
+            InlineKeyboardButton("🔍 Evaluador de Datos USD", callback_data="boost_role_data_evaluator")
+        ],
+        [
+            InlineKeyboardButton("🎧 Soporte Remoto (Zendesk)", callback_data="boost_role_customer_support_remote")
+        ],
+        [
+            InlineKeyboardButton("📋 Pegar Oferta de Empleo / Vacante", callback_data="boost_custom_prompt")
+        ],
+        [
+            InlineKeyboardButton("🌐 Abrir Optimizador en Mini App", web_app=WebAppInfo(url=MINI_APP_URL))
+        ],
+        [
+            InlineKeyboardButton("🏠 Volver al Menú Principal", callback_data="btn_back_menu")
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    if query:
+        await safe_edit_text(query, text, parse_mode='Markdown', reply_markup=reply_markup)
+    else:
+        await safe_reply_text(update.message, text, parse_mode='Markdown', reply_markup=reply_markup)
+
+
+async def boost_role_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Muestra el Cheat-Sheet completo y Hacks de Contratación para el rol seleccionado."""
+    query = update.callback_query
+    if query:
+        await query.answer()
+
+    role_id = query.data.replace("boost_role_", "")
+    booster = get_vacancy_booster(role_id)
+    if not booster:
+        await boost_menu_callback(update, context)
+        return
+
+    context.user_data['booster_data'] = booster
+    context.user_data['target_job'] = booster['title']
+    context.user_data['job_category'] = booster['id']
+    context.user_data['cv_type'] = booster.get('mode', 'formal_boxed')
+
+    keywords_sample = ", ".join(booster['keywords'][:7])
+    bullets_formatted = "\n".join([f"• {b}" for b in booster['bullets']])
+
+    detail_text = (
+        f"🎯 **HACK DE CONTRATACIÓN: {booster['title'].upper()}**\n"
+        f"`[Compatibilidad ATS: {booster.get('ats_match_score', 98)}% Verificada]`\n"
+        f"───────────────────────────────────\n"
+        f"🏷️ **PALABRAS CLAVE ATS INDISPENSABLES:**\n"
+        f"`{keywords_sample}`\n\n"
+        f"⚡ **PERFIL PROFESIONAL RECOMENDADO (Summary):**\n"
+        f"\"{booster['summary']}\"\n\n"
+        f"🏆 **LOGROS CUANTITATIVOS (Fórmula Harvard XYZ):**\n"
+        f"{bullets_formatted}\n\n"
+        f"🛠️ **HABILIDADES TÉCNICAS & HERRAMIENTAS:**\n"
+        f"▸ *Técnicas:* {booster['skills_tech']}\n"
+        f"▸ *Herramientas:* {booster['skills_tools']}\n\n"
+        f"{booster['recruiter_hack']}\n\n"
+        f"👇 **¿Deseas aplicar este perfil optimizado a tu CV con 1 clic?**"
+    )
+
+    keyboard = [
+        [InlineKeyboardButton("⚡ Generar mi CV con este Hack", callback_data=f"boost_apply_{booster['id']}")],
+        [InlineKeyboardButton("🌐 Usar en Mini App (Autollenado)", web_app=WebAppInfo(url=MINI_APP_URL))],
+        [InlineKeyboardButton("🔍 Ver otro cargo", callback_data="btn_boost_menu")],
+        [InlineKeyboardButton("🏠 Menú Principal", callback_data="btn_back_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await safe_edit_text(query, detail_text, parse_mode='Markdown', reply_markup=reply_markup)
+
+
+async def boost_prompt_custom_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Solicita al usuario que pegue el texto o cargo de la vacante deseada."""
+    query = update.callback_query
+    if query:
+        await query.answer()
+
+    context.user_data['awaiting_job_offer'] = True
+
+    prompt_text = (
+        "📋 **PEGA LA OFERTA DE EMPLEO O EL CARGO AL QUE ASPIRAS**\n"
+        "───────────────────────────────────\n"
+        "Envía en un mensaje de texto la descripción de la vacante, los requisitos o el título del empleo "
+        "(ejemplo: copiado de Computrabajo, Indeed, LinkedIn, El Empleo o WhatsApp).\n\n"
+        "🤖 **Nuestro optimizador analizará el texto al instante y extraerá:**\n"
+        "▸ Palabras clave indexables que exige esa vacante específica.\n"
+        "▸ Resumen profesional a medida.\n"
+        "▸ Fórmulas cuantitativas Harvard XYZ para asegurar llamadas a entrevista.\n"
+        "▸ El hack de contratación para destacar sobre otros postulantes.\n\n"
+        "👇 *Pega o escribe el texto aquí abajo:*"
+    )
+
+    keyboard = [
+        [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_boost_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    if query:
+        await safe_edit_text(query, prompt_text, parse_mode='Markdown', reply_markup=reply_markup)
+    else:
+        await safe_reply_text(update.message, prompt_text, parse_mode='Markdown', reply_markup=reply_markup)
+
+
+async def handle_pasted_job_offer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Procesa el texto de la vacante pegada y muestra el análisis optimizado."""
+    context.user_data['awaiting_job_offer'] = False
+    raw_text = update.message.text.strip()
+    if not raw_text:
+        await update.message.reply_text("⚠️ No se recibió texto. Pulsa /boost para reintentar.")
+        return
+
+    status_msg = await update.message.reply_text(
+        "🔍 **ANALIZANDO VACANTE CON MOTOR HEURÍSTICO ATS...**\n"
+        "▸ Extrayendo requerimientos técnicos y verbos de acción...\n"
+        "▸ Cruzando con base de datos de palabras clave indexables...",
+        parse_mode='Markdown'
+    )
+
+    booster = analyze_job_offer(raw_text)
+    context.user_data['booster_data'] = booster
+    context.user_data['target_job'] = booster['title']
+    context.user_data['job_category'] = booster['id']
+    context.user_data['cv_type'] = booster.get('mode', 'formal_boxed')
+
+    keywords_sample = ", ".join(booster['keywords'][:8])
+    bullets_formatted = "\n".join([f"• {b}" for b in booster['bullets']])
+
+    detail_text = (
+        f"🎯 **OPTIMIZACIÓN PARA TU VACANTE: {booster['title'].upper()}**\n"
+        f"`[Score de Compatibilidad ATS: {booster.get('ats_match_score', 96)}%]`\n"
+        f"───────────────────────────────────\n"
+        f"🏷️ **PALABRAS CLAVE DETECTADAS PARA ESTA VACANTE:**\n"
+        f"`{keywords_sample}`\n\n"
+        f"⚡ **PERFIL PROFESIONAL RECOMENDADO:**\n"
+        f"\"{booster['summary']}\"\n\n"
+        f"🏆 **LOGROS CON FÓRMULA HARVARD XYZ:**\n"
+        f"{bullets_formatted}\n\n"
+        f"🛠️ **HABILIDADES TÉCNICAS REQUERIDAS:**\n"
+        f"▸ {booster['skills_tech']}\n\n"
+        f"{booster['recruiter_hack']}\n\n"
+        f"👇 **Toca para generar tu CV optimizado con estos datos:**"
+    )
+
+    keyboard = [
+        [InlineKeyboardButton("⚡ Generar mi CV con esta Vacante", callback_data=f"boost_apply_{booster['id']}")],
+        [InlineKeyboardButton("🌐 Abrir en Mini App", web_app=WebAppInfo(url=MINI_APP_URL))],
+        [InlineKeyboardButton("📋 Pegar otra vacante", callback_data="boost_custom_prompt")],
+        [InlineKeyboardButton("🏠 Menú Principal", callback_data="btn_back_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    try:
+        await status_msg.delete()
+    except Exception:
+        pass
+
+    await safe_reply_text(update.message, detail_text, parse_mode='Markdown', reply_markup=reply_markup)
+
+
+async def boost_apply_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Aplica los datos optimizados del booster y procede a compilar el CV."""
+    query = update.callback_query
+    if query:
+        await query.answer("Aplicando Hacks de Contratación...")
+
+    booster_id = query.data.replace("boost_apply_", "")
+    booster = context.user_data.get('booster_data')
+    if not booster or booster.get('id') != booster_id:
+        booster = get_vacancy_booster(booster_id)
+        context.user_data['booster_data'] = booster
+
+    if booster:
+        context.user_data['target_job'] = booster['title']
+        context.user_data['job_category'] = booster['id']
+        context.user_data['cv_type'] = booster.get('mode', 'formal_boxed')
+
+    user = update.effective_user
+    msg = query.message if query else update.message
+
+    # Si el usuario ya tiene nombre y ciudad registrados en user_data
+    if context.user_data.get('name') and (context.user_data.get('city') or context.user_data.get('country')):
+        await generate_and_send_final_cv(msg, user, context)
+        return
+
+    # Si aún no tiene datos personales, iniciamos el flujo guiado rápido de CV con el cargo ya seleccionado
+    await safe_reply_text(
+        msg,
+        f"🎯 **PERFIL OPTIMIZADO: {booster['title']}**\n"
+        "───────────────────────────────────\n"
+        "✅ Palabras clave ATS cargadas al 100%.\n"
+        "✅ Fórmulas cuantitativas Harvard XYZ listas.\n\n"
+        "Solo necesitamos tus datos de contacto para estampar tu CV oficial listo para enviar 👇",
+        parse_mode='Markdown'
+    )
+    return await start_cv_step_1(msg, context)
+
+
+async def user_text_input_dispatcher(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Maneja mensajes de texto de usuarios fuera de conversaciones activas."""
+    if not update.message or not update.message.text:
+        return
+
+    text = update.message.text.strip()
+
+    # Si está esperando el texto de una oferta de empleo para optimizarla
+    if context.user_data.get('awaiting_job_offer'):
+        await handle_pasted_job_offer(update, context)
+        return
+
+    # Si presionó el botón de Boost en el dock inferior
+    if text == BTN_BOTTOM_BOOST:
+        await boost_menu_callback(update, context)
+        return
+
 
 
 async def download_kit_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -941,7 +1215,7 @@ async def check_dock_interrupt(update: Update, context: ContextTypes.DEFAULT_TYP
     if not update.message or not update.message.text:
         return False, 0
     raw_text = update.message.text.strip()
-    dock_buttons = [BTN_BOTTOM_CV, BTN_BOTTOM_PACK, BTN_BOTTOM_CHANNEL, BTN_BOTTOM_KIT, BTN_BOTTOM_GUIDE, BTN_BOTTOM_ATS, BTN_BOTTOM_ADMIN]
+    dock_buttons = [BTN_BOTTOM_CV, BTN_BOTTOM_BOOST, BTN_BOTTOM_PACK, BTN_BOTTOM_CHANNEL, BTN_BOTTOM_KIT, BTN_BOTTOM_GUIDE, BTN_BOTTOM_ATS, BTN_BOTTOM_ALERTS, BTN_BOTTOM_ADMIN]
     if raw_text not in dock_buttons:
         return False, 0
 
@@ -949,6 +1223,8 @@ async def check_dock_interrupt(update: Update, context: ContextTypes.DEFAULT_TYP
     if raw_text == BTN_BOTTOM_CV:
         res = await start_cv_step_1(update.message, context)
         return True, res
+    elif raw_text == BTN_BOTTOM_BOOST:
+        await boost_menu_callback(update, context)
     elif raw_text == BTN_BOTTOM_PACK:
         await referrals_menu_callback(update, context)
     elif raw_text == BTN_BOTTOM_CHANNEL:
@@ -959,6 +1235,8 @@ async def check_dock_interrupt(update: Update, context: ContextTypes.DEFAULT_TYP
         await guide_interviews_callback(update, context)
     elif raw_text == BTN_BOTTOM_ATS:
         await why_ats_callback(update, context)
+    elif raw_text == BTN_BOTTOM_ALERTS:
+        await toggle_alerts_callback(update, context)
     elif raw_text == BTN_BOTTOM_ADMIN:
         await admin_panel_command(update, context)
 
@@ -1032,12 +1310,23 @@ async def handle_country_callback(update: Update, context: ContextTypes.DEFAULT_
     context.user_data['country'] = country_val
     save_subscriber(update.effective_user, country=country_val)
 
+    if context.user_data.get('booster_data'):
+        booster = context.user_data['booster_data']
+        await query.message.reply_text(
+            f"📍 País confirmado: **{country_val}**\n"
+            f"🎯 Perfil Optimizado fijado: **{booster['title']}**\n\n"
+            "Avanzando a la confirmación de idiomas...",
+            parse_mode='Markdown'
+        )
+        return await ask_english_step(query.message, context)
+
     keyboard = [
         [InlineKeyboardButton("🛒 Ventas & Comercio", callback_data="job_ventas"), InlineKeyboardButton("📁 Auxiliar Administrativo", callback_data="job_admin")],
         [InlineKeyboardButton("📦 Almacén & Bodega", callback_data="job_bodega"), InlineKeyboardButton("🎧 Atención al Cliente", callback_data="job_servicio")],
         [InlineKeyboardButton("⚙️ Operario de Planta", callback_data="job_operario"), InlineKeyboardButton("🛡️ Vigilancia & Mant.", callback_data="job_seguridad")],
         [InlineKeyboardButton("🍽️ Hostelería & Cocina", callback_data="job_hosteleria"), InlineKeyboardButton("🚗 Conductor & Reparto", callback_data="job_transporte")],
         [InlineKeyboardButton("🌱 Primer Empleo (Sin exp.)", callback_data="job_primer_empleo"), InlineKeyboardButton("✍️ Escribir otro cargo", callback_data="job_custom")],
+        [InlineKeyboardButton("🎯 Hacks de Vacante / Pegar Oferta (Boost)", callback_data="boost_custom_prompt")],
         [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1089,13 +1378,16 @@ async def handle_target_callback(update: Update, context: ContextTypes.DEFAULT_T
     target_title = job_titles.get(job_code, "Evaluador de Inteligencia Artificial")
     context.user_data['target_job'] = target_title
     context.user_data['job_category'] = job_code
+    booster = get_vacancy_booster(job_code)
+    if booster:
+        context.user_data['booster_data'] = booster
     save_subscriber(update.effective_user, target_job=target_title)
 
     return await ask_english_step(query.message, context)
 
 
 async def receive_custom_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Recibe cargo escrito a mano."""
+    """Recibe cargo escrito a mano y extrae sus palabras clave."""
     interrupted, next_state = await check_dock_interrupt(update, context)
     if interrupted:
         return next_state
@@ -1103,6 +1395,7 @@ async def receive_custom_target(update: Update, context: ContextTypes.DEFAULT_TY
     target_title = update.message.text.strip()
     context.user_data['target_job'] = target_title
     context.user_data['job_category'] = "custom"
+    context.user_data['booster_data'] = analyze_job_offer(target_title)
     save_subscriber(update.effective_user, target_job=target_title)
     return await ask_english_step(update.message, context)
 
@@ -1356,6 +1649,9 @@ def generate_elite_cv_data(user_data):
     )
     languages_line = "" if is_native_only else f"Español (Nativo) • {language_text}"
 
+    # Booster Inteligente de Vacantes & Hacks de Contratación
+    booster = user_data.get('booster_data') or get_vacancy_booster(category) or analyze_job_offer(target)
+
     # Formación Académica estructurada (Secundaria + Primaria)
     if isinstance(raw_edu, dict):
         education_dict = raw_edu
@@ -1374,27 +1670,39 @@ def generate_elite_cv_data(user_data):
         per = custom_exp_data.get('periodo', '2 años')
         fun = custom_exp_data.get('funciones', '')
         bullets = []
-        if fun:
+        if fun and len(fun.strip()) > 8:
             bullets.append(f"Responsable de {fun.strip().rstrip('.')}.")
-        bullets.append("Atención respetuosa y cumplimiento de los procedimientos operativos y directrices de la empresa.")
-        bullets.append("Puntualidad estricta y colaboración continua con el equipo de trabajo en las metas diarias.")
-        bullets.append("Manejo adecuado de recursos, herramientas asignadas y orden en el puesto de trabajo.")
+            if booster and booster.get('bullets'):
+                bullets.extend(booster['bullets'][:2])
+            else:
+                bullets.append("Atención respetuosa y cumplimiento de los procedimientos operativos y directrices de la empresa.")
+                bullets.append("Puntualidad estricta y colaboración continua con el equipo de trabajo en las metas diarias.")
+        elif booster and booster.get('bullets'):
+            bullets = booster['bullets'][:3]
+        else:
+            bullets = [
+                "Atención respetuosa y cumplimiento de los procedimientos operativos y directrices de la empresa.",
+                "Puntualidad estricta y colaboración continua con el equipo de trabajo en las metas diarias.",
+                "Manejo adecuado de recursos, herramientas asignadas y orden en el puesto de trabajo."
+            ]
         user_experience = [{
             "role": car,
-            "company": f"{emp} | Modalidad Formal",
+            "company": f"{emp} | Modalidad Formal" if "formal" not in emp.lower() and "remote" not in emp.lower() else emp,
             "period": per,
-            "bullets": bullets
+            "bullets": bullets[:3]
         }]
     elif custom_text and len(custom_text.strip()) > 5:
+        bullets = [f"Desempeño directo en: {custom_text.strip().rstrip()}."]
+        if booster and booster.get('bullets'):
+            bullets.extend(booster['bullets'][:2])
+        else:
+            bullets.append("Cumplimiento sistemático de las tareas asignadas y reporte periódico de novedades a supervisión.")
+            bullets.append("Excelente disposición para el trabajo en equipo, puntualidad y honestidad en las labores cotidianas.")
         user_experience = [{
             "role": target,
             "company": "Experiencia Laboral Previa Comprobable",
             "period": "Trayectoria Reciente",
-            "bullets": [
-                f"Desempeño directo en: {custom_text.strip().rstrip('.')}.",
-                "Cumplimiento sistemático de las tareas asignadas y reporte periódico de novedades a supervisión.",
-                "Excelente disposición para el trabajo en equipo, puntualidad y honestidad en las labores cotidianas."
-            ]
+            "bullets": bullets[:3]
         }]
 
     # Si es modalidad PRIMER EMPLEO (Sin experiencia laboral previa)
@@ -1636,6 +1944,17 @@ def generate_elite_cv_data(user_data):
         skills_tech = f"Conocimientos prácticos en {target}, Ejecución de tareas operativas, Cumplimiento de procedimientos"
         skills_tools = "Herramientas y equipos propios del oficio, Elementos de trabajo asignados"
         skills_soft = "Puntualidad estricta, Honestidad comprobada, Disciplina laboral, Excelente disposición para el trabajo en equipo"
+
+    # Enriquecimiento final con booster si no fue sobreescrito por el usuario
+    if booster:
+        if not user_data.get('custom_summary') and booster.get('summary') and category not in ["primer_empleo"]:
+            summary = booster['summary']
+        if not user_data.get('custom_skills_tech') and booster.get('skills_tech'):
+            skills_tech = booster['skills_tech']
+        if not user_data.get('custom_skills_tools') and booster.get('skills_tools'):
+            skills_tools = booster['skills_tools']
+        if not user_data.get('custom_skills_soft') and booster.get('skills_soft'):
+            skills_soft = booster['skills_soft']
 
     return {
         "name": name,
@@ -2499,6 +2818,10 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             context.user_data['language_text'] = data.get('language_text', 'Español (Nativo)')
             context.user_data['exp_level'] = 'mid' if data.get('has_experience') else 'beginner'
             context.user_data['custom_exp_text'] = ''
+            if data.get('booster_data'):
+                context.user_data['booster_data'] = data.get('booster_data')
+            if data.get('boosted_summary'):
+                context.user_data['custom_summary'] = data.get('boosted_summary')
 
             save_subscriber(update.effective_user, country=context.user_data['country'], target_job=context.user_data['target_job'])
             await generate_and_send_final_cv(msg, update.effective_user, context)
@@ -3542,6 +3865,7 @@ def main():
 
     # 3. Handlers de Usuario General
     app.add_handler(CommandHandler('start', start))
+    app.add_handler(CommandHandler(['boost', 'hacks', 'trampa', 'optimizar', 'cheat'], boost_menu_callback))
     app.add_handler(CommandHandler(['pack', 'referidos'], referrals_menu_callback))
     app.add_handler(CommandHandler('kit', download_kit_callback))
     app.add_handler(CommandHandler('guia', guide_interviews_callback))
@@ -3551,6 +3875,10 @@ def main():
     app.add_handler(CommandHandler('cancel', cancel))
 
     app.add_handler(CallbackQueryHandler(start, pattern="^btn_back_menu$"))
+    app.add_handler(CallbackQueryHandler(boost_menu_callback, pattern="^btn_boost_menu$"))
+    app.add_handler(CallbackQueryHandler(boost_role_callback, pattern="^boost_role_"))
+    app.add_handler(CallbackQueryHandler(boost_prompt_custom_callback, pattern="^boost_custom_prompt$"))
+    app.add_handler(CallbackQueryHandler(boost_apply_callback, pattern="^boost_apply_"))
     app.add_handler(CallbackQueryHandler(referrals_menu_callback, pattern="^btn_referrals_menu$"))
     app.add_handler(CallbackQueryHandler(download_secret_pack_callback, pattern="^btn_download_secret_pack$"))
     app.add_handler(CallbackQueryHandler(channel_link_tracker_callback, pattern="^btn_channel_link$"))
@@ -3563,6 +3891,7 @@ def main():
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
 
     # 4. Handlers del Teclado Inferior Persistente (Dock Ergonómico)
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_BOOST)}$"), boost_menu_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_PACK)}$"), referrals_menu_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_CHANNEL)}$"), channel_link_tracker_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_KIT)}$"), download_kit_callback))
@@ -3570,6 +3899,9 @@ def main():
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_ATS)}$"), why_ats_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_ALERTS)}$"), toggle_alerts_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_ADMIN)}$"), admin_panel_command))
+
+    # Captura de textos de usuario fuera de la conversación (pegar vacante / booster / dock)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, user_text_input_dispatcher))
 
     app.add_error_handler(global_error_handler)
 

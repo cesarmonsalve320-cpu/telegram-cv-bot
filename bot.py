@@ -873,10 +873,59 @@ async def cancel_cv_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     """Cancela el flujo de CV y regresa limpiamente al menú principal."""
     query = update.callback_query
     if query:
-        await query.answer("Creación de CV cancelada.")
+        try:
+            await query.answer("Creación de CV cancelada.")
+        except Exception:
+            pass
     context.user_data.clear()
-    await start(update, context)
+
+    cancel_msg = (
+        "❌ **Creación de CV cancelada.**\n\n"
+        "Se ha restablecido tu sesión. Puedes volver a iniciar cuando quieras tocando **📄 Crear mi CV ATS** "
+        "o explorar las opciones disponibles en el menú inferior 👇"
+    )
+    user = update.effective_user
+    user_id = user.id if user else None
+    persistent_keyboard = get_main_reply_keyboard(user_id)
+
+    if query and query.message:
+        try:
+            await safe_edit_text(query, cancel_msg, parse_mode='Markdown', reply_markup=None)
+        except Exception:
+            await query.message.reply_text(cancel_msg, parse_mode='Markdown', reply_markup=persistent_keyboard)
+    elif update.message:
+        await update.message.reply_text(cancel_msg, parse_mode='Markdown', reply_markup=persistent_keyboard)
+
     return ConversationHandler.END
+
+
+async def check_dock_interrupt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> tuple[bool, int]:
+    """Interrumpe un paso de texto si el usuario presionó un botón del teclado inferior permanente."""
+    if not update.message or not update.message.text:
+        return False, 0
+    raw_text = update.message.text.strip()
+    dock_buttons = [BTN_BOTTOM_CV, BTN_BOTTOM_PACK, BTN_BOTTOM_CHANNEL, BTN_BOTTOM_KIT, BTN_BOTTOM_GUIDE, BTN_BOTTOM_ATS, BTN_BOTTOM_ADMIN]
+    if raw_text not in dock_buttons:
+        return False, 0
+
+    context.user_data.clear()
+    if raw_text == BTN_BOTTOM_CV:
+        res = await start_cv_step_1(update.message, context)
+        return True, res
+    elif raw_text == BTN_BOTTOM_PACK:
+        await referrals_menu_callback(update, context)
+    elif raw_text == BTN_BOTTOM_CHANNEL:
+        await channel_link_tracker_callback(update, context)
+    elif raw_text == BTN_BOTTOM_KIT:
+        await download_kit_callback(update, context)
+    elif raw_text == BTN_BOTTOM_GUIDE:
+        await guide_interviews_callback(update, context)
+    elif raw_text == BTN_BOTTOM_ATS:
+        await why_ats_callback(update, context)
+    elif raw_text == BTN_BOTTOM_ADMIN:
+        await admin_panel_command(update, context)
+
+    return True, ConversationHandler.END
 
 
 async def start_cv_step_1(message, context) -> int:
@@ -899,31 +948,11 @@ async def start_cv_step_1(message, context) -> int:
 # ========================================================
 async def receive_name_step(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Recibe nombre/correo y muestra botones para elegir País."""
-    raw_text = update.message.text.strip()
+    interrupted, next_state = await check_dock_interrupt(update, context)
+    if interrupted:
+        return next_state
 
-    # Interceptar si el usuario pulsó un botón del teclado inferior permanente
-    if raw_text in [BTN_BOTTOM_CV, BTN_BOTTOM_PACK, BTN_BOTTOM_CHANNEL, BTN_BOTTOM_KIT, BTN_BOTTOM_GUIDE, BTN_BOTTOM_ATS, BTN_BOTTOM_ADMIN]:
-        context.user_data.clear()
-        if raw_text == BTN_BOTTOM_CV:
-            return await start_cv_step_1(update.message, context)
-        elif raw_text == BTN_BOTTOM_PACK:
-            await referrals_menu_callback(update, context)
-            return ConversationHandler.END
-        elif raw_text == BTN_BOTTOM_CHANNEL:
-            await channel_link_tracker_callback(update, context)
-            return ConversationHandler.END
-        elif raw_text == BTN_BOTTOM_KIT:
-            await download_kit_callback(update, context)
-            return ConversationHandler.END
-        elif raw_text == BTN_BOTTOM_GUIDE:
-            await guide_interviews_callback(update, context)
-            return ConversationHandler.END
-        elif raw_text == BTN_BOTTOM_ATS:
-            await why_ats_callback(update, context)
-            return ConversationHandler.END
-        elif raw_text == BTN_BOTTOM_ADMIN:
-            await admin_panel_command(update, context)
-            return ConversationHandler.END
+    raw_text = update.message.text.strip()
 
     parsed = parse_name_and_email(raw_text)
     context.user_data['name'] = parsed['name']
@@ -1017,6 +1046,10 @@ async def handle_target_callback(update: Update, context: ContextTypes.DEFAULT_T
 
 async def receive_custom_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Recibe cargo escrito a mano."""
+    interrupted, next_state = await check_dock_interrupt(update, context)
+    if interrupted:
+        return next_state
+
     target_title = update.message.text.strip()
     context.user_data['target_job'] = target_title
     context.user_data['job_category'] = "custom"
@@ -1137,6 +1170,10 @@ async def handle_experience_level_callback(update: Update, context: ContextTypes
 
 async def receive_custom_experience(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Recibe el texto de experiencia personalizada y genera el CV."""
+    interrupted, next_state = await check_dock_interrupt(update, context)
+    if interrupted:
+        return next_state
+
     context.user_data['exp_level'] = "custom"
     context.user_data['custom_exp_text'] = update.message.text.strip()
     return await generate_and_send_final_cv(update.message, update.effective_user, context)
@@ -2752,13 +2789,15 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancela cualquier operación actual y vuelve al estado normal."""
-    context.user_data.pop('admin_action', None)
-    context.user_data.pop('pending_broadcast', None)
-    context.user_data.pop('pending_custom_post', None)
+    context.user_data.clear()
+    user = update.effective_user
+    user_id = user.id if user else None
+    persistent_keyboard = get_main_reply_keyboard(user_id)
 
     await update.message.reply_text(
-        "Operación cancelada. Puedes escribir /start para el menú principal o /admin para el panel.",
-        reply_markup=ReplyKeyboardRemove()
+        "❌ **Operación cancelada.**\n\nSe ha restablecido tu sesión. Puedes explorar las opciones en el menú inferior 👇",
+        parse_mode='Markdown',
+        reply_markup=persistent_keyboard
     )
     return ConversationHandler.END
 
@@ -2773,11 +2812,12 @@ def main():
 
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).post_init(on_bot_startup).build()
 
-    # 1. Flujo Conversacional Interactivo de Creación de CV
+    # 1. Flujo Conversacional Interactivo de Creación de CV (Prioritario)
     cv_conv_handler = ConversationHandler(
         entry_points=[
             CommandHandler('cv', start_cv_entry),
-            CallbackQueryHandler(start_cv_entry, pattern="^btn_start_cv$")
+            CallbackQueryHandler(start_cv_entry, pattern="^btn_start_cv$"),
+            MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_CV)}$"), start_cv_entry)
         ],
         states={
             STEP_NAME: [
@@ -2813,8 +2853,11 @@ def main():
         fallbacks=[
             CommandHandler('cancel', cancel),
             CallbackQueryHandler(cancel_cv_callback, pattern="^btn_cancel_cv$")
-        ]
+        ],
+        allow_reentry=True
     )
+    app.add_handler(cv_conv_handler)
+    app.add_handler(CallbackQueryHandler(cancel_cv_callback, pattern="^btn_cancel_cv$"))
 
     # 2. Handlers del Panel de Administrador (/admin y /panel)
     app.add_handler(CommandHandler(['admin', 'panel'], admin_panel_command))
@@ -2844,7 +2887,6 @@ def main():
     app.add_handler(CallbackQueryHandler(guide_interviews_callback, pattern="^btn_guide_interviews$"))
 
     # 4. Handlers del Teclado Inferior Persistente (Dock Ergonómico)
-    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_CV)}$"), start_cv_entry))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_PACK)}$"), referrals_menu_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_CHANNEL)}$"), channel_link_tracker_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_KIT)}$"), download_kit_callback))
@@ -2852,8 +2894,6 @@ def main():
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_ATS)}$"), why_ats_callback))
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_ADMIN)}$"), admin_panel_command))
 
-    # Handler del CV
-    app.add_handler(cv_conv_handler)
     app.add_error_handler(global_error_handler)
 
     logger.info("Bot de CV ATS de Élite con Mega Panel Admin iniciado exitosamente.")

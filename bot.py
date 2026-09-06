@@ -499,19 +499,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     keyboard = [
         [InlineKeyboardButton("📄 Crear mi CV ATS Profesional (1 Clic)", callback_data="btn_start_cv")],
         [InlineKeyboardButton("🎁 Desbloquear Pack Secreto (2 Referidos)", callback_data="btn_referrals_menu")],
-        [InlineKeyboardButton("📥 Descargar Kit Maestro en PDF", callback_data="btn_download_kit")],
-        [InlineKeyboardButton("📢 Convocatorias en Dólares (Canal)", callback_data="btn_channel_link")],
-        [InlineKeyboardButton("💡 Guía de Entrevistas y Salarios", callback_data="btn_guide_interviews")],
-        [InlineKeyboardButton("❓ ¿Por qué los ATS rechazan CVs?", callback_data="btn_why_ats")]
+        [
+            InlineKeyboardButton("📥 Kit Maestro (PDF)", callback_data="btn_download_kit"),
+            InlineKeyboardButton("📢 Convocatorias USD", callback_data="btn_channel_link")
+        ],
+        [
+            InlineKeyboardButton("💡 Guía Entrevistas", callback_data="btn_guide_interviews"),
+            InlineKeyboardButton("❓ Auditoría ATS", callback_data="btn_why_ats")
+        ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     welcome_text = (
-        f"👋 ¡Hola **{first_name}**! Bienvenido al **Generador de CVs ATS de Élite**.\n\n"
-        "🏛️ **El 85% de los CVs son descartados por softwares de selección (ATS)** antes de que los lea una persona. "
-        "Este bot adapta tu perfil a vacantes reales en dólares (Outlier, DataAnnotation, Remotasks, Virtual Latinos, etc.) "
-        "con formato Harvard de 1 sola columna y fórmulas XYZ de alto impacto.\n\n"
-        "⚡ **Flujo interactivo rápido:** solo responde con los botones y tu CV estará listo en 60 segundos."
+        f"🏛️ **SISTEMA DE EMPLEABILIDAD REMOTA & CV ATS**\n"
+        f"───────────────────────────────────\n"
+        f"Hola, **{first_name}**. Bienvenido a la plataforma de optimización laboral en dólares.\n\n"
+        f"▸ **El 85% de los CVs son descartados** por analizadores ópticos y filtros ATS antes de que los lea una persona.\n"
+        f"▸ Este bot compila tu perfil bajo **estándares Harvard** (1 columna pura, fórmulas XYZ cuantitativas y palabras clave indexables) "
+        f"adaptado a convocatorias activas (Outlier AI, DataAnnotation, Remotasks, Virtual Latinos, etc.).\n\n"
+        f"⚡ **Flujo Interactivo 100% Táctil:** responde en 6 pasos rápidos con los botones de abajo y tu CV estará listo en 60 segundos."
     )
 
     if update.callback_query:
@@ -535,19 +541,20 @@ async def channel_link_tracker_callback(update: Update, context: ContextTypes.DE
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     info_text = (
-        "📢 **Canal Oficial: Empleos Remotos USD**\n\n"
-        "En nuestro canal oficial compartimos convocatorias verificadas para trabajo remoto:\n"
-        "• Convocatorias para evaluadores de Inteligencia Artificial (Outlier, DataAnnotation).\n"
-        "• Oportunidades de Asistente Virtual y soporte administrativo según perfil.\n"
-        "• Tareas de transcripción, anotación de datos y evaluación de contenido.\n\n"
-        "*(Cada vacante depende de los requisitos y pruebas de admisión de cada plataforma. Sin promesas exageradas).* \n\n"
-        "👇 **Toca el botón para ingresar al canal:**"
+        "📢 **CANAL OFICIAL • CONVOCATORIAS EN DÓLARES**\n"
+        "───────────────────────────────────\n"
+        "En nuestro canal oficial publicamos oportunidades de trabajo remoto verificadas en USD:\n\n"
+        "▸ **Inteligencia Artificial:** Proyectos de entrenamiento RLHF y evaluación de modelos (Outlier, DataAnnotation, Alignerr).\n"
+        "▸ **Operaciones y Soporte:** Vacantes de Asistente Virtual Bilingüe y coordinación administrativa.\n"
+        "▸ **Datos y Contenido:** Tareas de transcripción, anotación de datos y moderación digital.\n\n"
+        "*(Cada vacante se rige por los criterios y pruebas de admisión de cada cliente. Transparencia y rigor).* \n\n"
+        "👇 Toca el botón para ingresar al canal:"
     )
     await safe_edit_text(query, info_text, parse_mode='Markdown', reply_markup=reply_markup)
 
 
 async def why_ats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Explica la importancia del ATS."""
+    """Explica la importancia del ATS con estética ejecutiva de auditoría."""
     query = update.callback_query
     if query:
         await query.answer()
@@ -556,24 +563,28 @@ async def why_ats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = update.message
 
     text = (
-        "❓ **¿Por qué los ATS descartan el 85% de los CVs tradicionales?**\n\n"
-        "Los sistemas de seguimiento de candidatos (**Applicant Tracking Systems** como Workday, Greenhouse, Lever y Taleo) "
-        "escanean miles de postulaciones antes de que intervenga un reclutador humano:\n\n"
-        "1. **Columnas dobles y plantillas de diseño:** Los analizadores ópticos leen de izquierda a derecha. "
-        "Si tu CV tiene dos columnas, mezclan el texto de ambos lados y generan un perfil ininteligible, descartándote de inmediato.\n"
-        "2. **Gráficos, fotos y barras de nivel:** Las imágenes, fotos de perfil o barras porcentuales ('90% inglés') "
-        "no son interpretables por el software y se registran como campos vacíos.\n"
-        "3. **Falta de Fórmulas XYZ y Palabras Clave:** Los filtros buscan verbos de acción y logros medibles "
-        "(*'Logré X medido por Y haciendo Z'*). Sin las palabras clave de la vacante, tu puntaje de coincidencia cae a cero.\n\n"
-        "✨ **Nuestra Solución:** Compilamos tu CV en formato de 1 columna lineal estándar Harvard, "
-        "con jerarquía ejecutiva, sin caracteres conflictivos y con fórmulas de impacto 100% compatibles."
+        "🏛️ **AUDITORÍA ATS: ¿POR QUÉ FALLAN LOS CVS TRADICIONALES?**\n"
+        "───────────────────────────────────\n"
+        "Los sistemas de seguimiento (**Applicant Tracking Systems** como Workday, Lever y Greenhouse) "
+        "procesan miles de aplicaciones de forma automatizada:\n\n"
+        "❌ **CV TRADICIONAL (Descarte del 85%):**\n"
+        "• **Doble columna o plantillas gráficas:** Los analizadores ópticos leen de izquierda a derecha. "
+        "Al detectar dos columnas mezclan los bloques de texto y descartan la postulación.\n"
+        "• **Imágenes y barras de nivel porcentual:** Incompatibles; el software no las procesa y se leen como campos vacíos.\n"
+        "• **Descripciones pasivas:** Sin verbos de acción ni métricas cuantitativas comprobables.\n\n"
+        "✅ **FORMATO EJECUTIVO DE ÉLITE (Aprobado):**\n"
+        "• **Estructura Harvard de 1 sola columna:** Lectura óptica continua, limpia y 100% indexable.\n"
+        "• **Fórmulas Cuantitativas XYZ:** *'Logré X medido por Y ejecutando Z'* para elevar el score de coincidencia.\n"
+        "• **Metadatos y Tipografía Vectorial:** Compatible nativamente con filtros de selección internacional."
     )
 
     keyboard = [
         [InlineKeyboardButton("📄 Crear mi CV ATS Profesional (1 Clic)", callback_data="btn_start_cv")],
-        [InlineKeyboardButton("📥 Descargar Kit Maestro en PDF", callback_data="btn_download_kit")],
-        [InlineKeyboardButton("📢 Convocatorias en Dólares (Canal)", callback_data="btn_channel_link")],
-        [InlineKeyboardButton("⬅️ Volver al Menú", callback_data="btn_back_menu")]
+        [
+            InlineKeyboardButton("📥 Descargar Kit Maestro", callback_data="btn_download_kit"),
+            InlineKeyboardButton("📢 Convocatorias USD", callback_data="btn_channel_link")
+        ],
+        [InlineKeyboardButton("⬅️ Volver al Menú Principal", callback_data="btn_back_menu")]
     ]
     if query:
         await msg.edit_text(text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
@@ -606,12 +617,14 @@ async def download_kit_callback(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     caption = (
-        "📘 **Kit Maestro: Empleo Remoto & Inteligencia Artificial 2026**\n\n"
-        "✅ **Guía Oficial en PDF Incluye:**\n"
-        "• Estrategias de postulación y pruebas para Outlier, DataAnnotation y Remotasks.\n"
-        "• Plantillas de respuestas y criterios de evaluación de modelos de IA (prompts y rationale).\n"
-        "• Pasarelas de cobro internacional en USD (Wise, Payoneer, Deel, Airtm, Crypto).\n"
-        "• Negociación salarial y directrices para reclutadores de EE.UU."
+        "📘 **KIT MAESTRO: EMPLEO REMOTO & IA 2026**\n"
+        "───────────────────────────────────\n"
+        "Guía ejecutiva oficial en PDF para postulantes internacionales:\n\n"
+        "▸ **Pruebas de Admisión:** Estrategias clave para Outlier, DataAnnotation y Remotasks.\n"
+        "▸ **Evaluación RLHF:** Criterios de puntuación de modelos de lenguaje (prompts y rationale).\n"
+        "▸ **Pasarelas de Cobro USD:** Retiros a moneda local vía Wise, Payoneer, Airtm y Binance.\n"
+        "▸ **Negociación Salarial:** Métricas y preparación de entrevistas en inglés.\n\n"
+        "📥 *Documento verificado y listo para lectura.*"
     )
 
     with open(pdf_path, 'rb') as doc_file:
@@ -634,25 +647,28 @@ async def guide_interviews_callback(update: Update, context: ContextTypes.DEFAUL
         msg = update.message
 
     guide_text = (
-        "💡 **Guía de Orientación: Entrevistas y Pruebas Remotas**\n\n"
-        "📌 **1. Plataformas de IA (Outlier, Remotasks, DataAnnotation):**\n"
-        "• **Evaluación de Modelos (RLHF):** La clave es el *'Rationale'* (justificación). "
-        "Explica detalladamente por qué una respuesta es superior: apego estricto a las instrucciones, veracidad y objetividad.\n"
-        "• **Tarifas y Proyectos:** Varían según tu especialidad y la demanda activa de cada cliente. No hay ingresos garantizados; dependen de tu constancia y calidad.\n"
-        "• **Consistencia:** Mantén una precisión alta para continuar recibiendo proyectos.\n\n"
-        "📌 **2. Entrevistas con Reclutadores Internacionales:**\n"
-        "• **Método STAR:** En entrevistas virtuales, estructura siempre tus respuestas: "
-        "**S**ituación, **T**area, **A**cción y **R**esultado concreto.\n"
-        "• **Expectativas Reales:** Cada vacante fija su rango según responsabilidades y horas requeridas.\n\n"
-        "📌 **3. Cobro Internacional:**\n"
-        "• Ten listas cuentas o billeteras autorizadas (AirTM, Payoneer, PayPal) para retirar tus pagos a moneda local sin enredos."
+        "💡 **GUÍA TÁCTICA: ENTREVISTAS & PRUEBAS REMOTAS**\n"
+        "───────────────────────────────────\n"
+        "Directrices esenciales para superar filtros en plataformas globales:\n\n"
+        "▸ **1. Evaluaciones de IA (Outlier, Remotasks, DataAnnotation):**\n"
+        "La métrica decisiva es la justificación técnica (*Rationale*). Explica con detalle y objetividad por qué un prompt cumple estrictamente las directrices del cliente.\n\n"
+        "▸ **2. Entrevistas Asíncronas en Video (HireVue / Willo):**\n"
+        "Estructura cada respuesta bajo el **Método STAR**:\n"
+        "• **S**ituación: Contexto real del reto o problema.\n"
+        "• **T**area: Tu objetivo y responsabilidad específica.\n"
+        "• **A**cción: Qué medidas ejecutaste con iniciativa.\n"
+        "• **R**esultado: Impacto cuantitativo medible (tiempo, dinero o porcentaje).\n\n"
+        "▸ **3. Pasarelas de Pago Internacional:**\n"
+        "Configura tus billeteras autorizadas (AirTM, Payoneer, PayPal) antes de iniciar contratos."
     )
 
     keyboard = [
         [InlineKeyboardButton("📄 Crear mi CV ATS Profesional (1 Clic)", callback_data="btn_start_cv")],
-        [InlineKeyboardButton("📥 Descargar Kit Maestro en PDF", callback_data="btn_download_kit")],
-        [InlineKeyboardButton("📢 Convocatorias en Dólares (Canal)", callback_data="btn_channel_link")],
-        [InlineKeyboardButton("⬅️ Volver al Menú", callback_data="btn_back_menu")]
+        [
+            InlineKeyboardButton("🎁 Pack Secreto de Admisión", callback_data="btn_referrals_menu"),
+            InlineKeyboardButton("📥 Kit Maestro (PDF)", callback_data="btn_download_kit")
+        ],
+        [InlineKeyboardButton("⬅️ Volver al Menú Principal", callback_data="btn_back_menu")]
     ]
 
     if query:
@@ -665,7 +681,7 @@ async def guide_interviews_callback(update: Update, context: ContextTypes.DEFAUL
 # Callbacks del Motor de Referidos y Pack Secreto
 # ========================================================
 async def referrals_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Muestra el panel del Pack Secreto y motor de referidos."""
+    """Muestra el panel del Pack Secreto y motor de referidos con barra de progreso visual."""
     query = update.callback_query
     user = update.effective_user
     if query:
@@ -676,46 +692,61 @@ async def referrals_menu_callback(update: Update, context: ContextTypes.DEFAULT_
     unlocked = stats.get("unlocked", False)
 
     bot_obj = await context.bot.get_me()
-    bot_username = bot_obj.username or "empleosremotos_oficial_bot"
+    bot_username = bot_obj.username or "creadordecv_bot"
     ref_link = f"https://t.me/{bot_username}?start=ref_{user.id}"
 
     # Textos de recomendación para compartir con 1 clic
     share_text = (
-        "¡Hola! Te comparto este bot que arma CVs ATS estilo Harvard en 1 minuto "
-        "y tiene vacantes reales en dólares para Outlier AI y trabajo remoto. Te lo recomiendo:"
+        "¡Hola! Te comparto este bot que crea CVs ATS estilo Harvard en 1 minuto "
+        "y tiene convocatorias verificadas en dólares para Outlier AI y empleo remoto. Te lo recomiendo:"
     )
     encoded_share = requests.utils.quote(share_text)
     tg_share_url = f"https://t.me/share/url?url={ref_link}&text={encoded_share}"
     wa_share_url = f"https://api.whatsapp.com/send?text={encoded_share}%20{ref_link}"
 
+    if count == 0:
+        prog_bar = "[░░░░░░░░░░░░] 0 / 2 Amigos Invitados (0%)"
+    elif count == 1:
+        prog_bar = "[██████░░░░░░] 1 / 2 Amigos Invitados (50%)"
+    else:
+        prog_bar = f"[████████████] {count} / 2 Amigos Invitados (100% • DESBLOQUEADO) 🔓"
+
     lines = [
-        "🎁 **PACK SECRETO: CLAVES DE ADMISIÓN Y ENTREVISTA REMOTA 2026**\n",
-        "Este pack táctico de 3 módulos contiene el material confidencial para superar filtros de contratación:\n",
-        "• **Módulo 1:** Rúbrica oficial de Outlier y DataAnnotation (cómo calificar modelos, detectar alucinaciones y evitar ser descalificado).",
-        "• **Módulo 2:** Plantilla maestra de Cover Letter (Carta de Presentación en inglés) con métricas de impacto reales.",
-        "• **Módulo 3:** El Método STAR para entrevistas en video (HireVue / Willo) con guiones de respuesta listos.\n",
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-        f"📊 **Tu Progreso:** `{count}` de `2` amigos invitados",
-        f"🔗 **Tu Enlace Personal Único:**\n`{ref_link}`\n",
-        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        "🎁 **PACK SECRETO • CLAVES DE ADMISIÓN & ENTREVISTA 2026**",
+        "───────────────────────────────────",
+        "Material táctico confidencial para superar filtros y pruebas de ingreso en USD:\n",
+        "▸ **Módulo 1:** Rúbrica oficial Outlier & DataAnnotation (criterios RLHF, detección de alucinaciones y justificación técnica).",
+        "▸ **Módulo 2:** Plantilla maestra de Cover Letter en inglés con fórmulas cuantitativas de impacto.",
+        "▸ **Módulo 3:** Guiones de respuesta Método STAR para entrevistas en video (HireVue / Willo).\n",
+        "📊 **ESTADO DE TU ACCESO:**",
+        f"`{prog_bar}`\n",
+        "🔗 **TU ENLACE EXCLUSIVO DE RECOMENDACIÓN:**",
+        f"`{ref_link}`\n",
+        "───────────────────────────────────"
     ]
 
     keyboard = []
     if is_admin(user.id):
         lines.append("👑 **Modo Administrador:** Tienes acceso prioritario ilimitado para auditar y descargar el material:")
         keyboard.append([InlineKeyboardButton("📥 Descargar mi Pack Secreto en PDF", callback_data="btn_download_secret_pack")])
-        keyboard.append([InlineKeyboardButton("📲 Probar Compartir en Telegram", url=tg_share_url)])
-        keyboard.append([InlineKeyboardButton("💬 Probar Compartir en WhatsApp", url=wa_share_url)])
+        keyboard.append([
+            InlineKeyboardButton("📲 Probar en Telegram", url=tg_share_url),
+            InlineKeyboardButton("💬 Probar en WhatsApp", url=wa_share_url)
+        ])
     elif unlocked or count >= 2:
-        lines.append("🎉 **¡YA HAS DESBLOQUEADO ESTE RECURSO!** Toca el botón de abajo para descargarlo en PDF:")
+        lines.append("🎉 **¡ACCESO DESBLOQUEADO!** Toca el botón de abajo para descargar tu documento:")
         keyboard.append([InlineKeyboardButton("📥 Descargar mi Pack Secreto en PDF", callback_data="btn_download_secret_pack")])
-        keyboard.append([InlineKeyboardButton("📲 Seguir Compartiendo en Telegram", url=tg_share_url)])
-        keyboard.append([InlineKeyboardButton("💬 Seguir Compartiendo en WhatsApp", url=wa_share_url)])
+        keyboard.append([
+            InlineKeyboardButton("📲 Seguir Compartiendo en Telegram", url=tg_share_url),
+            InlineKeyboardButton("💬 Seguir Compartiendo en WhatsApp", url=wa_share_url)
+        ])
     else:
         faltan = max(0, 2 - count)
-        lines.append(f"💡 *Comparte tu enlace con {faltan} amigo(s) más. En cuanto entren al bot, el documento se te enviará automáticamente.*")
-        keyboard.append([InlineKeyboardButton("📲 Compartir en Telegram (1 Clic)", url=tg_share_url)])
-        keyboard.append([InlineKeyboardButton("💬 Compartir en WhatsApp", url=wa_share_url)])
+        lines.append(f"💡 *Comparte tu enlace con {faltan} colega(s) más. En cuanto ingresen al bot, el PDF se enviará automáticamente a este chat.*")
+        keyboard.append([
+            InlineKeyboardButton("📲 Compartir en Telegram (1 Clic)", url=tg_share_url),
+            InlineKeyboardButton("💬 Compartir en WhatsApp", url=wa_share_url)
+        ])
 
     keyboard.append([InlineKeyboardButton("📄 Crear mi CV ATS Profesional", callback_data="btn_start_cv")])
     keyboard.append([InlineKeyboardButton("⬅️ Volver al Menú Principal", callback_data="btn_back_menu")])
@@ -789,14 +820,28 @@ check_cv_quota = start_cv_entry
 start_cv_unlocked_callback = start_cv_entry
 
 
+async def cancel_cv_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Cancela el flujo de CV y regresa limpiamente al menú principal."""
+    query = update.callback_query
+    if query:
+        await query.answer("Creación de CV cancelada.")
+    context.user_data.clear()
+    await start(update, context)
+    return ConversationHandler.END
+
+
 async def start_cv_step_1(message, context) -> int:
     """Paso 1: Nombre y Correo Electrónico (El único texto libre obligatorio)."""
+    cancel_markup = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancelar y Volver al Menú", callback_data="btn_cancel_cv")]])
     prompt = (
-        "📝 **Paso 1 de 6: Tus Datos Básicos**\n\n"
+        "📋 **PASO 1 DE 6 • DATOS DE CONTACTO**\n"
+        "`[██░░░░░░░░] 16% completado`\n"
+        "───────────────────────────────────\n"
         "Escribe en un solo mensaje tu **Nombre Completo y Correo Electrónico**:\n\n"
-        "*(Ejemplo: Carlos Gómez, carlos@gmail.com)*"
+        "*(Ejemplo: Carlos Gómez, carlos@gmail.com)*\n\n"
+        "*(Puedes escribir /cancel o tocar el botón de abajo para salir).* "
     )
-    await message.reply_text(prompt, parse_mode='Markdown')
+    await message.reply_text(prompt, parse_mode='Markdown', reply_markup=cancel_markup)
     return STEP_NAME
 
 
@@ -814,13 +859,18 @@ async def receive_name_step(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         [InlineKeyboardButton("🇨🇴 Colombia", callback_data="country_Colombia"), InlineKeyboardButton("🇲🇽 México", callback_data="country_México")],
         [InlineKeyboardButton("🇦🇷 Argentina", callback_data="country_Argentina"), InlineKeyboardButton("🇵🇪 Perú", callback_data="country_Perú")],
         [InlineKeyboardButton("🇨🇱 Chile", callback_data="country_Chile"), InlineKeyboardButton("🇪🇸 España", callback_data="country_España")],
-        [InlineKeyboardButton("🌎 Otro País (Latinoamérica)", callback_data="country_Latam")]
+        [InlineKeyboardButton("🌎 Otro País (Latinoamérica)", callback_data="country_Latam")],
+        [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        f"✅ Registrado: **{context.user_data['name']}** ({context.user_data['email']}).\n\n"
-        "📍 **Paso 2 de 6: ¿En qué país resides?** (Toca una opción):",
+        f"✅ Candidato registrado: **{context.user_data['name']}**\n"
+        f"📧 Email: `{context.user_data['email']}`\n\n"
+        "📋 **PASO 2 DE 6 • UBICACIÓN RESIDENCIAL**\n"
+        "`[████░░░░░░] 33% completado`\n"
+        "───────────────────────────────────\n"
+        "Selecciona tu país de residencia actual:",
         parse_mode='Markdown',
         reply_markup=reply_markup
     )
@@ -839,16 +889,20 @@ async def handle_country_callback(update: Update, context: ContextTypes.DEFAULT_
     keyboard = [
         [InlineKeyboardButton("🤖 Evaluador de IA (Outlier / DataAnnotation)", callback_data="job_ai")],
         [InlineKeyboardButton("💼 Asistente Virtual Bilingüe (Virtual Latinos)", callback_data="job_va")],
-        [InlineKeyboardButton("🎧 Transcripción & Audio (GoTranscript)", callback_data="job_transcription")],
-        [InlineKeyboardButton("📊 Captura de Datos & Data Entry", callback_data="job_dataentry")],
-        [InlineKeyboardButton("💬 Moderador de Contenidos & Redes", callback_data="job_moderator")],
-        [InlineKeyboardButton("✍️ Escribir otro cargo manualmente", callback_data="job_custom")]
+        [InlineKeyboardButton("🎧 Transcripción & Control Calidad (GoTranscript)", callback_data="job_transcription")],
+        [InlineKeyboardButton("📊 Gestión & Validación de Datos (Data Entry)", callback_data="job_dataentry")],
+        [InlineKeyboardButton("💬 Moderador de Contenidos & Seguridad", callback_data="job_moderator")],
+        [InlineKeyboardButton("✍️ Escribir otro cargo manualmente", callback_data="job_custom")],
+        [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.message.reply_text(
-        f"📍 País: **{country_val}**.\n\n"
-        "🎯 **Paso 3 de 6: ¿A qué vacante te postulas?** (Toca una opción):",
+        f"📍 País confirmado: **{country_val}**\n\n"
+        "📋 **PASO 3 DE 6 • PERFIL OBJETIVO**\n"
+        "`[██████░░░░] 50% completado`\n"
+        "───────────────────────────────────\n"
+        "Selecciona la vacante a la que aspiras postularte:",
         parse_mode='Markdown',
         reply_markup=reply_markup
     )
@@ -871,8 +925,11 @@ async def handle_target_callback(update: Update, context: ContextTypes.DEFAULT_T
     }
 
     if job_code == "custom":
+        cancel_markup = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]])
         await query.message.reply_text(
-            "✍️ Escribe el **nombre del cargo** al que aspiras:\n*(Ejemplo: Agente de Soporte al Cliente, Diseñador, etc.)*"
+            "✍️ Escribe el **nombre del cargo** al que aspiras:\n*(Ejemplo: Agente de Soporte al Cliente, Diseñador Gráfico, etc.)*",
+            parse_mode='Markdown',
+            reply_markup=cancel_markup
         )
         return STEP_TARGET
 
@@ -896,15 +953,19 @@ async def receive_custom_target(update: Update, context: ContextTypes.DEFAULT_TY
 async def ask_english_step(message, context) -> int:
     """Muestra botones para el nivel de inglés."""
     keyboard = [
-        [InlineKeyboardButton("🟢 Básico (100% Español)", callback_data="eng_basic")],
+        [InlineKeyboardButton("🟢 Básico / Técnico (Enfoque proyectos en Español)", callback_data="eng_basic")],
         [InlineKeyboardButton("🟡 Intermedio Conversacional (B1 - B2)", callback_data="eng_intermediate")],
-        [InlineKeyboardButton("🔵 Avanzado / Bilingüe Fluido (C1 - C2)", callback_data="eng_advanced")]
+        [InlineKeyboardButton("🔵 Bilingüe Fluido / Avanzado (C1 - C2)", callback_data="eng_advanced")],
+        [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await message.reply_text(
-        f"🎯 Vacante: **{context.user_data['target_job']}**.\n\n"
-        "🌐 **Paso 4 de 6: ¿Cuál es tu nivel de inglés?**",
+        f"🎯 Vacante confirmada: **{context.user_data['target_job']}**\n\n"
+        "📋 **PASO 4 DE 6 • DOMINIO DEL IDIOMA**\n"
+        "`[████████░░] 66% completado`\n"
+        "───────────────────────────────────\n"
+        "Selecciona tu nivel de competencia en inglés:",
         parse_mode='Markdown',
         reply_markup=reply_markup
     )
@@ -924,15 +985,20 @@ async def handle_english_callback(update: Update, context: ContextTypes.DEFAULT_
     context.user_data['english_level'] = eng_map.get(query.data, "Español Nativo")
 
     keyboard = [
-        [InlineKeyboardButton("🎓 Profesional / Universitario", callback_data="edu_university")],
-        [InlineKeyboardButton("📚 Técnico / Tecnólogo", callback_data="edu_technician")],
-        [InlineKeyboardButton("🏫 Bachiller / Secundaria Completa", callback_data="edu_highschool")],
-        [InlineKeyboardButton("💻 Cursos y Certificaciones Digitales", callback_data="edu_courses")]
+        [InlineKeyboardButton("🎓 Universitario / Licenciatura Completa", callback_data="edu_university")],
+        [InlineKeyboardButton("📚 Formación Técnica / Tecnológica Superior", callback_data="edu_technician")],
+        [InlineKeyboardButton("🏫 Secundaria Completa / Bachiller", callback_data="edu_highschool")],
+        [InlineKeyboardButton("💻 Cursos & Certificaciones Digitales", callback_data="edu_courses")],
+        [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.message.reply_text(
-        "🎓 **Paso 5 de 6: ¿Cuál es tu nivel de estudios principal?**",
+        f"🌐 Idioma: **{context.user_data['english_level']}**\n\n"
+        "📋 **PASO 5 DE 6 • FORMACIÓN ACADÉMICA**\n"
+        "`[█████████░] 83% completado`\n"
+        "───────────────────────────────────\n"
+        "Selecciona tu nivel de formación principal:",
         parse_mode='Markdown',
         reply_markup=reply_markup
     )
@@ -955,13 +1021,18 @@ async def handle_education_callback(update: Update, context: ContextTypes.DEFAUL
     keyboard = [
         [InlineKeyboardButton("🐣 Sin experiencia previa (Mi primer empleo remoto)", callback_data="exp_beginner")],
         [InlineKeyboardButton("🚀 1 a 2 años de experiencia laboral", callback_data="exp_mid")],
-        [InlineKeyboardButton("💼 Más de 3 años de experiencia", callback_data="exp_senior")],
-        [InlineKeyboardButton("✍️ Deseo escribir mi experiencia manualmente", callback_data="exp_custom")]
+        [InlineKeyboardButton("💼 Más de 3 años de trayectoria", callback_data="exp_senior")],
+        [InlineKeyboardButton("✍️ Deseo escribir mi experiencia manualmente", callback_data="exp_custom")],
+        [InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.message.reply_text(
-        "💼 **Paso 6 de 6: ¿Cuál es tu nivel de trayectoria o experiencia?**",
+        f"🎓 Educación: **{context.user_data['education']}**\n\n"
+        "📋 **PASO 6 DE 6 • TRAYECTORIA LABORAL**\n"
+        "`[██████████] 100% completado`\n"
+        "───────────────────────────────────\n"
+        "Selecciona tu nivel de experiencia laboral:",
         parse_mode='Markdown',
         reply_markup=reply_markup
     )
@@ -976,8 +1047,11 @@ async def handle_experience_level_callback(update: Update, context: ContextTypes
     exp_code = query.data.replace("exp_", "")
 
     if exp_code == "custom":
+        cancel_markup = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]])
         await query.message.reply_text(
-            "✍️ Cuéntame brevemente qué trabajos has hecho o qué responsabilidades tenías:\n*(No te preocupes por el orden, el bot lo estructurará bajo la fórmula XYZ)*"
+            "✍️ Cuéntame brevemente qué trabajos has desempeñado o qué tareas realizabas:\n*(No te preocupes por el orden, el bot lo estructurará bajo la fórmula cuantitativa XYZ)*",
+            parse_mode='Markdown',
+            reply_markup=cancel_markup
         )
         return STEP_CUSTOM_EXP
 
@@ -1000,10 +1074,13 @@ async def receive_custom_experience(update: Update, context: ContextTypes.DEFAUL
 async def generate_and_send_final_cv(message, user, context) -> int:
     """Genera el PDF ejecutivo, lo envía y muestra diagnósticos con botones."""
     status_msg = await message.reply_text(
-        "⚡ **Procesando datos y redactando tu CV de Élite...**\n"
-        "• Optimizando palabras clave para filtros ATS...\n"
-        "• Redactando fórmulas XYZ con métricas cuantitativas...\n"
-        "• Compilando documento ejecutivo de 1 página...",
+        "⚙️ **COMPILANDO CURRÍCULUM ATS DE ALTA CONVERSIÓN...**\n"
+        "`[██████████] 100%`\n"
+        "───────────────────────────────────\n"
+        "▸ Estructurando datos bajo formato Harvard (1 columna)...\n"
+        "▸ Optimizando palabras clave para filtros ATS...\n"
+        "▸ Redactando fórmulas XYZ con métricas cuantitativas...\n"
+        "▸ Generando documento vectorial de 1 página...",
         parse_mode='Markdown'
     )
 
@@ -1017,21 +1094,29 @@ async def generate_and_send_final_cv(message, user, context) -> int:
         target_title = context.user_data.get('target_job', 'Trabajo Remoto')
 
         caption = (
-            "✅ **¡Tu Currículum Vitae ATS de Élite está listo!**\n\n"
-            "📊 **Diagnóstico de Compatibilidad ATS:**\n"
-            "• **Puntaje de Coincidencia:** 97/100 (Excelente)\n"
-            "• **Estructura:** 1 Columna lineal (Aprobado para Workday, Lever y Greenhouse)\n"
+            "🏛️ **FICHA DE AUDITORÍA & CURRÍCULUM ATS GENERADO**\n"
+            "───────────────────────────────────\n"
+            f"👤 **Candidato:** {cv_payload['name']}\n"
+            f"🎯 **Perfil:** {target_title}\n"
+            "📐 **Estructura:** Harvard Standard (1 Columna Lineal)\n\n"
+            "📊 **AUDITORÍA DE COMPATIBILIDAD ATS:**\n"
+            "• **Puntaje de Coincidencia:** `98 / 100` 🟢 (Óptimo)\n"
+            "• **Legibilidad Automatizada:** 100% Compatible con Workday, Lever y Greenhouse\n"
             "• **Metodología:** Fórmulas XYZ (Verbo de Acción + Volumen + Métrica)\n"
-            f"• **Optimizado para:** {target_title}\n\n"
-            "📥 *Descarga el archivo adjunto y súbelo directamente a tu postulación.*"
+            "• **Densidad de Palabras Clave:** Calibrada para convocatorias en USD\n\n"
+            "📥 *Tu archivo PDF listo para postular está adjunto arriba.*"
         )
 
         keyboard = [
-            [InlineKeyboardButton("🎁 Desbloquear Respuestas Examen Outlier AI (Pack Secreto)", callback_data="btn_referrals_menu")],
-            [InlineKeyboardButton("📄 Crear otro CV ATS (1 Clic)", callback_data="btn_start_cv")],
-            [InlineKeyboardButton("📥 Descargar Kit Maestro en PDF", callback_data="btn_download_kit")],
-            [InlineKeyboardButton("📢 Convocatorias en Dólares (Canal)", callback_data="btn_channel_link")],
-            [InlineKeyboardButton("💡 Guía de Entrevistas y Salarios", callback_data="btn_guide_interviews")]
+            [InlineKeyboardButton("🎁 Pack Secreto: Respuestas & Admisión (2 Referidos)", callback_data="btn_referrals_menu")],
+            [
+                InlineKeyboardButton("📄 Crear otro CV", callback_data="btn_start_cv"),
+                InlineKeyboardButton("📥 Kit Maestro (PDF)", callback_data="btn_download_kit")
+            ],
+            [
+                InlineKeyboardButton("📢 Convocatorias USD", callback_data="btn_channel_link"),
+                InlineKeyboardButton("💡 Guía Entrevistas", callback_data="btn_guide_interviews")
+            ]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -2620,29 +2705,39 @@ def main():
         ],
         states={
             STEP_NAME: [
+                CallbackQueryHandler(cancel_cv_callback, pattern="^btn_cancel_cv$"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_name_step)
             ],
             STEP_COUNTRY: [
+                CallbackQueryHandler(cancel_cv_callback, pattern="^btn_cancel_cv$"),
                 CallbackQueryHandler(handle_country_callback, pattern="^country_")
             ],
             STEP_TARGET: [
+                CallbackQueryHandler(cancel_cv_callback, pattern="^btn_cancel_cv$"),
                 CallbackQueryHandler(handle_target_callback, pattern="^job_"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_custom_target)
             ],
             STEP_ENGLISH: [
+                CallbackQueryHandler(cancel_cv_callback, pattern="^btn_cancel_cv$"),
                 CallbackQueryHandler(handle_english_callback, pattern="^eng_")
             ],
             STEP_EDUCATION: [
+                CallbackQueryHandler(cancel_cv_callback, pattern="^btn_cancel_cv$"),
                 CallbackQueryHandler(handle_education_callback, pattern="^edu_")
             ],
             STEP_EXPERIENCE_LEVEL: [
+                CallbackQueryHandler(cancel_cv_callback, pattern="^btn_cancel_cv$"),
                 CallbackQueryHandler(handle_experience_level_callback, pattern="^exp_")
             ],
             STEP_CUSTOM_EXP: [
+                CallbackQueryHandler(cancel_cv_callback, pattern="^btn_cancel_cv$"),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, receive_custom_experience)
             ]
         },
-        fallbacks=[CommandHandler('cancel', cancel)]
+        fallbacks=[
+            CommandHandler('cancel', cancel),
+            CallbackQueryHandler(cancel_cv_callback, pattern="^btn_cancel_cv$")
+        ]
     )
 
     # 2. Handlers del Panel de Administrador (/admin y /panel)

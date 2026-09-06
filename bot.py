@@ -569,12 +569,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def channel_link_tracker_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Registra el clic en el canal patrocinador y envía enlace con botón interactivo."""
     query = update.callback_query
-    await query.answer("Abriendo canal de convocatorias...")
+    if query:
+        await query.answer("Abriendo canal de convocatorias...")
     increment_stat('channel_clicks')
 
     keyboard = [
-        [InlineKeyboardButton("🚀 Entrar al Canal @empleosremotos_oficial", url=SPONSOR_CHANNEL_URL)],
-        [InlineKeyboardButton("⬅️ Volver al Menú Principal", callback_data="btn_back_menu")]
+        [InlineKeyboardButton("🚀 Entrar al Canal @empleosremotos_oficial", url=SPONSOR_CHANNEL_URL)]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -586,9 +586,12 @@ async def channel_link_tracker_callback(update: Update, context: ContextTypes.DE
         "▸ **Operaciones y Soporte:** Vacantes de Asistente Virtual Bilingüe y coordinación administrativa.\n"
         "▸ **Datos y Contenido:** Tareas de transcripción, anotación de datos y moderación digital.\n\n"
         "*(Cada vacante se rige por los criterios y pruebas de admisión de cada cliente. Transparencia y rigor).* \n\n"
-        "👇 Toca el botón para ingresar al canal:"
+        "👇 Toca el botón para ingresar al canal oficial:"
     )
-    await safe_edit_text(query, info_text, parse_mode='Markdown', reply_markup=reply_markup)
+    if query:
+        await safe_edit_text(query, info_text, parse_mode='Markdown', reply_markup=reply_markup)
+    else:
+        await update.message.reply_text(info_text, parse_mode='Markdown', reply_markup=reply_markup)
 
 
 async def why_ats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1854,7 +1857,13 @@ async def publish_autopilot_next_job(application) -> tuple[bool, str]:
 async def run_autopilot_loop(application):
     """Bucle continuo en segundo plano del Piloto Automático Agéntico 24/7."""
     logger.info("🤖 Iniciando motor de Piloto Automático Agéntico 24/7...")
-    await asyncio.sleep(5)
+    await asyncio.sleep(15)
+
+    # Inicializar last_post con la hora actual de arranque para evitar doble posteo o repeticiones al reiniciar/desplegar
+    startup_state = load_autopilot_state()
+    startup_state["last_post"] = datetime.now().isoformat()
+    save_autopilot_state(startup_state)
+    logger.info(f"🤖 Piloto Automático calibrado: intervalo de {startup_state.get('interval_hours', 6)}h (próxima vacante: #{startup_state.get('current_index', 0) + 1}).")
 
     while True:
         try:
@@ -1866,7 +1875,9 @@ async def run_autopilot_loop(application):
                 now = datetime.now()
 
                 if not last_post_str:
-                    should_post = True
+                    should_post = False
+                    state["last_post"] = now.isoformat()
+                    save_autopilot_state(state)
                 else:
                     try:
                         last_post_dt = datetime.fromisoformat(last_post_str)
@@ -1875,7 +1886,9 @@ async def run_autopilot_loop(application):
                             should_post = True
                     except Exception as pe:
                         logger.error(f"Error analizando timestamp last_post ({last_post_str}): {pe}")
-                        should_post = True
+                        should_post = False
+                        state["last_post"] = now.isoformat()
+                        save_autopilot_state(state)
 
                 if should_post:
                     logger.info("🤖 Piloto Automático: Ejecutando publicación periódica de vacante...")

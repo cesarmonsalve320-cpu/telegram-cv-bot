@@ -35,7 +35,8 @@ from telegram import (
     InlineKeyboardMarkup,
     ReplyKeyboardRemove,
     ReplyKeyboardMarkup,
-    KeyboardButton
+    KeyboardButton,
+    WebAppInfo
 )
 from telegram.error import TelegramError, BadRequest
 from telegram.ext import (
@@ -81,6 +82,11 @@ CHANNEL_USERNAME = '@empleosremotos_oficial'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MINI_APP_URL = os.getenv('MINI_APP_URL', 'https://telegram-cv-bot-oqr6.onrender.com/app')
 MINI_APP_HTML_PATH = os.path.join(BASE_DIR, 'mini_app.html')
+
+SUBSCRIBERS_FILE = os.path.join(BASE_DIR, 'subscribers.json')
+STATS_FILE = os.path.join(BASE_DIR, 'stats.json')
+MONETIZATION_FILE = os.path.join(BASE_DIR, 'monetization.json')
+REFERRALS_FILE = os.path.join(BASE_DIR, 'referrals.json')
 
 # Kit Maestro PDF Path
 KIT_MAESTRO_PDF_PATH = os.path.join(BASE_DIR, 'Kit_Maestro_Empleo_Remoto_2026.pdf')
@@ -2149,7 +2155,10 @@ async def toggle_alerts_callback(update: Update, context: ContextTypes.DEFAULT_T
 async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Procesa los datos enviados desde la Telegram Mini App y compila el CV al instante."""
     try:
-        raw_data = update.message.web_app_data.data
+        msg = update.effective_message or update.message
+        if not msg or not hasattr(msg, 'web_app_data') or not msg.web_app_data:
+            return
+        raw_data = msg.web_app_data.data
         data = json.loads(raw_data)
         if data.get('action') == 'generate_cv':
             context.user_data['name'] = data.get('name', 'CANDIDATO PROFESIONAL')
@@ -2163,10 +2172,11 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             context.user_data['custom_exp_text'] = ''
 
             save_subscriber(update.effective_user, country=context.user_data['country'], target_job=context.user_data['target_job'])
-            await generate_and_send_final_cv(update.message, update.effective_user, context)
+            await generate_and_send_final_cv(msg, update.effective_user, context)
     except Exception as e:
         logger.error(f"Error procesando web_app_data: {e}", exc_info=True)
-        await update.message.reply_text("⚠️ Ocurrió un inconveniente al procesar los datos de la Mini App. Puedes iniciar por chat con /cv.")
+        if update.effective_message:
+            await update.effective_message.reply_text("⚠️ Ocurrió un inconveniente al procesar los datos de la Mini App. Puedes iniciar por chat con /cv.")
 
 
 async def publish_autopilot_next_job(application) -> tuple[bool, str]:

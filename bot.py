@@ -51,7 +51,7 @@ from telegram.ext import (
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 from autopilot_catalog import (
@@ -966,18 +966,21 @@ async def check_dock_interrupt(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def start_cv_step_1(message, context) -> int:
-    """Paso 1: Nombre y Correo Electrónico (El único texto libre obligatorio)."""
+    """Paso 1: Selección de modalidad y datos de contacto."""
     cancel_markup = InlineKeyboardMarkup([
         [InlineKeyboardButton("🌐 Diseñar en Mini App (Visual e In-App)", web_app=WebAppInfo(url=MINI_APP_URL))],
+        [InlineKeyboardButton("📄 Hoja de Vida Formal (Normal)", callback_data="mode_formal"), InlineKeyboardButton("🚀 CV Remoto USD (Outlier)", callback_data="mode_remote")],
         [InlineKeyboardButton("❌ Cancelar y Volver al Menú", callback_data="btn_cancel_cv")]
     ])
     prompt = (
-        "📋 **PASO 1 DE 6 • DATOS DE CONTACTO**\n"
+        "📋 **CREACIÓN DE CURRÍCULUM • SELECCIONA TU MODALIDAD**\n"
         "`[██░░░░░░░░] 16% completado`\n"
         "───────────────────────────────────\n"
-        "Escribe en un solo mensaje tu **Nombre Completo y Correo Electrónico**:\n\n"
-        "*(Ejemplo: Carlos Gómez, carlos@gmail.com)*\n\n"
-        "*(O toca el botón de arriba para diseñarlo visualmente a pantalla completa en la Mini App).* "
+        "¿Qué tipo de currículum necesitas?\n\n"
+        "1️⃣ **📄 Hoja de Vida Formal:** Para empresas locales y empleos tradicionales (Ventas, Administración, Bodega, Operarios, Primaria y Secundaria con años).\n\n"
+        "2️⃣ **🚀 CV Remoto en Dólares:** Formato Harvard ATS optimizado para vacantes en USD (Outlier AI, Asistente Virtual, Remoto Global).\n\n"
+        "✍️ Escribe en un mensaje tu **Nombre Completo y Celular o Correo** para continuar:\n"
+        "*(Ej: Carlos Pérez, 3001234567)*"
     )
     await message.reply_text(prompt, parse_mode='Markdown', reply_markup=cancel_markup)
     return STEP_NAME
@@ -1264,7 +1267,11 @@ async def generate_and_send_final_cv(message, user, context) -> int:
 
     try:
         cv_payload = generate_elite_cv_data(context.user_data)
-        pdf_bytes = build_ats_pdf(cv_payload)
+        cv_mode = context.user_data.get('cv_type', 'formal_boxed')
+        if cv_mode == 'remote_ats':
+            pdf_bytes = build_ats_pdf(cv_payload)
+        else:
+            pdf_bytes = build_formal_boxed_pdf(cv_payload)
 
         candidate_filename = cv_payload['name'].replace(" ", "_")
         filename = f"CV_{candidate_filename}_ATS_2026.pdf"
@@ -1646,6 +1653,226 @@ def generate_elite_cv_data(user_data):
 # ========================================================
 # Motor de Renderizado PDF para Hoja de Vida / CV Formal
 # ========================================================
+
+def build_formal_boxed_pdf(data):
+    """Genera documento PDF en Cajas/Tarjetas ejecutivas idéntico a la estructura de referencia visual."""
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        leftMargin=26,
+        rightMargin=26,
+        topMargin=22,
+        bottomMargin=22
+    )
+    styles = getSampleStyleSheet()
+
+    c_banner_bg = colors.HexColor('#EBF3FA')
+    c_card_bg = colors.HexColor('#FFFFFF')
+    c_border = colors.HexColor('#D1DCE5')
+    c_title = colors.HexColor('#1E3A8A')
+    c_sec_title = colors.HexColor('#1D4ED8')
+    c_text = colors.HexColor('#1E293B')
+    c_muted = colors.HexColor('#64748B')
+    c_line = colors.HexColor('#E2E8F0')
+
+    page_width = letter[0] - 52  # 560 pt
+
+    name_style = ParagraphStyle('BName', fontName='Helvetica-Bold', fontSize=15, leading=18, textColor=c_title, alignment=1)
+    sub_style = ParagraphStyle('BSub', fontName='Helvetica', fontSize=8, leading=10.5, textColor=c_muted, alignment=1)
+    sec_style = ParagraphStyle('BSec', fontName='Helvetica-Bold', fontSize=8.5, leading=10, textColor=c_sec_title, spaceAfter=3)
+    body_style = ParagraphStyle('BBody', fontName='Helvetica', fontSize=7.5, leading=10, textColor=c_text)
+    job_role = ParagraphStyle('BRole', fontName='Helvetica-Bold', fontSize=8, leading=10, textColor=c_title)
+    job_meta = ParagraphStyle('BMeta', fontName='Helvetica-Bold', fontSize=7.5, leading=9.5, textColor=c_muted, alignment=2)
+    bullet_style = ParagraphStyle('BBullet', fontName='Helvetica', fontSize=7.3, leading=9.5, textColor=c_text, leftIndent=8, firstLineIndent=-6, spaceAfter=1)
+    footer_style = ParagraphStyle('BFoot', fontName='Helvetica', fontSize=7.3, leading=9, textColor=c_muted, alignment=1)
+
+    story = []
+
+    # 1. HEADER BANNER
+    candidate_name = data.get('name', 'CANDIDATO PROFESIONAL').upper()
+    contact_line = data.get('contact_line')
+    if not contact_line:
+        parts = [p for p in [data.get('city'), data.get('phone'), data.get('email')] if p]
+        contact_line = " &nbsp;•&nbsp; ".join(parts) if parts else "Contacto Disponible"
+
+    h_content = [
+        [Paragraph(candidate_name, name_style)],
+        [Paragraph(contact_line, sub_style)]
+    ]
+    t_header = Table(h_content, colWidths=[page_width])
+    t_header.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), c_banner_bg),
+        ('BOX', (0,0), (-1,-1), 1, c_border),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('LEFTPADDING', (0,0), (-1,-1), 10),
+        ('RIGHTPADDING', (0,0), (-1,-1), 10),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+    ]))
+    story.append(t_header)
+    story.append(Spacer(1, 6))
+
+    # 2. PERFIL LABORAL
+    prof_summary = data.get('summary', 'Profesional responsable y comprometido, con vocación de servicio y rápida adaptabilidad.')
+    p_content = [
+        [Paragraph('• PERFIL LABORAL / PROFESIONAL', sec_style)],
+        [Paragraph(prof_summary, body_style)]
+    ]
+    t_perfil = Table(p_content, colWidths=[page_width])
+    t_perfil.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), c_card_bg),
+        ('BOX', (0,0), (-1,-1), 0.75, c_border),
+        ('TOPPADDING', (0,0), (-1,-1), 7),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 7),
+        ('LEFTPADDING', (0,0), (-1,-1), 10),
+        ('RIGHTPADDING', (0,0), (-1,-1), 10),
+    ]))
+    story.append(t_perfil)
+    story.append(Spacer(1, 6))
+
+    # 3. EXPERIENCIA LABORAL
+    exp_inner = []
+    exp_inner.append([Paragraph('• EXPERIENCIA LABORAL', sec_style)])
+    
+    for idx, job in enumerate(data['experience'][:2]):
+        jh = [
+            [Paragraph(f"{job['role']} — {job['company']}", job_role), Paragraph(job['period'], job_meta)]
+        ]
+        t_jh = Table(jh, colWidths=[page_width - 120, 100])
+        t_jh.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 0),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2)
+        ]))
+        exp_inner.append([t_jh])
+        b_paras = [Paragraph(f"• {b}", bullet_style) for b in job['bullets'][:3]]
+        exp_inner.append([b_paras])
+        if idx == 0 and len(data['experience']) > 1:
+            exp_inner.append([HRFlowable(width='100%', thickness=0.5, color=c_line, spaceBefore=3, spaceAfter=3)])
+
+    t_exp = Table(exp_inner, colWidths=[page_width])
+    t_exp.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), c_card_bg),
+        ('BOX', (0,0), (-1,-1), 0.75, c_border),
+        ('TOPPADDING', (0,0), (-1,-1), 7),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 7),
+        ('LEFTPADDING', (0,0), (-1,-1), 10),
+        ('RIGHTPADDING', (0,0), (-1,-1), 10),
+    ]))
+    story.append(t_exp)
+    story.append(Spacer(1, 6))
+
+    # 4. EDUCACIÓN Y FORMACIÓN (Secundaria y Primaria con años)
+    edu_inner = [[Paragraph('• EDUCACIÓN Y FORMACIÓN ACADÉMICA', sec_style)]]
+    edu_data = data.get('education')
+    if isinstance(edu_data, dict):
+        sec = edu_data.get('secundaria')
+        if sec and isinstance(sec, dict):
+            sec_col = sec.get('colegio', 'Colegio de Educación Secundaria')
+            sec_ano = sec.get('ano', '')
+            sec_est = sec.get('estado', 'Bachiller Académico')
+            sec_text = f"• <b>Educación Secundaria / Bachillerato:</b> {sec_col}"
+            if sec_ano: sec_text += f" | Año: {sec_ano}"
+            if sec_est: sec_text += f" — <i>{sec_est}</i>"
+            edu_inner.append([Paragraph(sec_text, body_style)])
+        pri = edu_data.get('primaria')
+        if pri and isinstance(pri, dict):
+            pri_col = pri.get('colegio', 'Escuela de Educación Primaria')
+            pri_ano = pri.get('ano', '')
+            pri_est = pri.get('estado', 'Primaria Completa')
+            pri_text = f"• <b>Educación Básica Primaria:</b> {pri_col}"
+            if pri_ano: pri_text += f" | Años: {pri_ano}"
+            if pri_est: pri_text += f" — <i>{pri_est}</i>"
+            edu_inner.append([Paragraph(pri_text, body_style)])
+        extra = edu_data.get('extra')
+        if extra and str(extra).strip():
+            edu_inner.append([Paragraph(f"• <b>Cursos / Capacitaciones:</b> {extra}", body_style)])
+    else:
+        edu_inner.append([Paragraph('• <b>Educación Secundaria:</b> Colegio de Educación Secundaria — <i>Bachiller Graduado</i>', body_style)])
+        edu_inner.append([Paragraph('• <b>Educación Básica Primaria:</b> Escuela de Educación Primaria — <i>Primaria Completa</i>', body_style)])
+
+    t_edu = Table(edu_inner, colWidths=[page_width])
+    t_edu.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), c_card_bg),
+        ('BOX', (0,0), (-1,-1), 0.75, c_border),
+        ('TOPPADDING', (0,0), (-1,-1), 7),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 7),
+        ('LEFTPADDING', (0,0), (-1,-1), 10),
+        ('RIGHTPADDING', (0,0), (-1,-1), 10),
+    ]))
+    story.append(t_edu)
+    story.append(Spacer(1, 6))
+
+    # 5. DOS COLUMNAS AL PIE (HABILIDADES Y VALORES)
+    col_w = (page_width - 8) / 2
+    
+    skills_raw = data.get('skills_tech', '')
+    s_items = [s.strip() for s in skills_raw.split(',') if s.strip()][:4]
+    if not s_items: s_items = ['Atención al cliente', 'Manejo de caja y cobro POS', 'Control de stock y pedidos', 'Orden en el puesto']
+    left_content = [[Paragraph('• HABILIDADES DEL OFICIO', sec_style)]]
+    for s in s_items: left_content.append([Paragraph(f"• {s}", bullet_style)])
+    t_left = Table(left_content, colWidths=[col_w])
+    t_left.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), c_card_bg),
+        ('BOX', (0,0), (-1,-1), 0.75, c_border),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('LEFTPADDING', (0,0), (-1,-1), 8),
+        ('RIGHTPADDING', (0,0), (-1,-1), 8),
+    ]))
+
+    soft_raw = data.get('skills_soft', '')
+    v_items = [v.strip() for v in soft_raw.split(',') if v.strip()][:4]
+    if not v_items: v_items = ['Puntualidad rigurosa', 'Honradez comprobada', 'Trabajo en equipo', 'Rápido aprendizaje']
+    right_content = [[Paragraph('• VALORES Y APTITUDES', sec_style)]]
+    for v in v_items: right_content.append([Paragraph(f"• {v}", bullet_style)])
+    t_right = Table(right_content, colWidths=[col_w])
+    t_right.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), c_card_bg),
+        ('BOX', (0,0), (-1,-1), 0.75, c_border),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('LEFTPADDING', (0,0), (-1,-1), 8),
+        ('RIGHTPADDING', (0,0), (-1,-1), 8),
+    ]))
+
+    t_cols = Table([[t_left, t_right]], colWidths=[col_w, col_w])
+    t_cols.setStyle(TableStyle([
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+        ('TOPPADDING', (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('RIGHTPADDING', (0,0), (0,0), 4),
+        ('LEFTPADDING', (1,0), (1,0), 4),
+    ]))
+    story.append(t_cols)
+    story.append(Spacer(1, 6))
+
+    # 6. FOOTER BANNER
+    foot_content = [
+        [Paragraph('Disponibilidad Horaria Inmediata &nbsp;•&nbsp; Referencias Laborales y Personales Disponibles a Solicitud', footer_style)]
+    ]
+    t_foot = Table(foot_content, colWidths=[page_width])
+    t_foot.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), c_banner_bg),
+        ('BOX', (0,0), (-1,-1), 0.75, c_border),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ('LEFTPADDING', (0,0), (-1,-1), 8),
+        ('RIGHTPADDING', (0,0), (-1,-1), 8),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+    ]))
+    story.append(t_foot)
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+
 def build_ats_pdf(data):
     """Genera un documento PDF formal de 1 página, sobrio, elegante y 100% legible."""
     buffer = BytesIO()
@@ -1744,14 +1971,21 @@ def build_ats_pdf(data):
     story = []
 
     # 1. ENCABEZADO FORMAL
-    story.append(Paragraph(data['name'], name_style))
-    story.append(Paragraph(data['contact_line'], contact_style))
+    candidate_name = data.get('name', 'CANDIDATO PROFESIONAL').upper()
+    contact_line = data.get('contact_line')
+    if not contact_line:
+        parts = [p for p in [data.get('city'), data.get('phone'), data.get('email')] if p]
+        contact_line = " &nbsp;•&nbsp; ".join(parts) if parts else "Contacto Disponible"
+
+    story.append(Paragraph(candidate_name, name_style))
+    story.append(Paragraph(contact_line, contact_style))
     story.append(HRFlowable(width="100%", thickness=1, color=color_line, spaceBefore=2, spaceAfter=4))
 
     # 2. PERFIL LABORAL
     story.append(Paragraph("PERFIL LABORAL / PROFESIONAL", heading_style))
     story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=2))
-    story.append(Paragraph(data['summary'], body_style))
+    prof_summary = data.get('summary', 'Profesional con sólida experiencia y orientación a resultados.')
+    story.append(Paragraph(prof_summary, body_style))
 
     # 3. EXPERIENCIA LABORAL
     story.append(Paragraph("EXPERIENCIA LABORAL", heading_style))
@@ -1770,8 +2004,26 @@ def build_ats_pdf(data):
     story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=2))
 
     edu_data = data.get('education')
-    if isinstance(edu_data, dict):
-        # Secundaria
+    if isinstance(edu_data, list):
+        for item in edu_data:
+            deg = item.get('degree', 'Estudios Superiores')
+            sch = item.get('school', 'Universidad / Institución')
+            per = item.get('period', '')
+            txt = f"• <b>{deg}</b> — {sch}" + (f" ({per})" if per else "")
+            story.append(Paragraph(txt, body_style))
+    elif isinstance(edu_data, dict):
+        # Modo remoto: universidad y certificaciones
+        uni = edu_data.get('universidad')
+        if uni and isinstance(uni, dict):
+            uni_inst = uni.get('institucion', 'Universidad / Instituto Superior')
+            uni_deg = uni.get('titulo', 'Estudios Profesionales')
+            uni_yr = uni.get('ano', '')
+            u_txt = f"• <b>{uni_deg}</b> — {uni_inst}" + (f" ({uni_yr})" if uni_yr else "")
+            story.append(Paragraph(u_txt, body_style))
+        certs = edu_data.get('certificaciones')
+        if certs and str(certs).strip():
+            story.append(Paragraph(f"• <b>Certificaciones:</b> {certs}", body_style))
+        # Modo tradicional: secundaria y primaria
         sec = edu_data.get('secundaria')
         if sec and isinstance(sec, dict):
             sec_col = sec.get('colegio', 'Colegio de Educación Secundaria')
@@ -1781,7 +2033,6 @@ def build_ats_pdf(data):
             if sec_ano: sec_text += f" | {sec_ano}"
             if sec_est: sec_text += f" — <i>{sec_est}</i>"
             story.append(Paragraph(sec_text, body_style))
-        # Primaria
         pri = edu_data.get('primaria')
         if pri and isinstance(pri, dict):
             pri_col = pri.get('colegio', 'Escuela de Educación Primaria')
@@ -1791,19 +2042,21 @@ def build_ats_pdf(data):
             if pri_ano: pri_text += f" | {pri_ano}"
             if pri_est: pri_text += f" — <i>{pri_est}</i>"
             story.append(Paragraph(pri_text, body_style))
-        # Extra
         extra = edu_data.get('extra')
         if extra and str(extra).strip():
             story.append(Paragraph(f"• <b>Otros Estudios / Cursos:</b> {extra}", body_style))
+    elif isinstance(edu_data, str) and edu_data.strip():
+        story.append(Paragraph(f"• {edu_data}", body_style))
     else:
-        story.append(Paragraph(f"• <b>Educación Secundaria:</b> Colegio de Educación Secundaria — <i>Bachiller Graduado</i>", body_style))
-        story.append(Paragraph(f"• <b>Educación Primaria:</b> Escuela de Educación Primaria — <i>Primaria Completa</i>", body_style))
+        story.append(Paragraph("• <b>Educación Superior / Formación Continua:</b> Formación académica completa y verificable", body_style))
 
     # 5. COMPETENCIAS Y HABILIDADES
     story.append(Paragraph("COMPETENCIAS LABORALES & HABILIDADES", heading_style))
     story.append(HRFlowable(width="100%", thickness=0.5, color=color_line, spaceBefore=1, spaceAfter=2))
-    story.append(Paragraph(f"<b>Competencias del Oficio:</b> {data['skills_tech']}", body_style))
-    story.append(Paragraph(f"<b>Valores & Actitudes:</b> {data['skills_soft']}", body_style))
+    hard_skills = data.get('skills_tech') or data.get('skills_hard') or 'Competencias técnicas y operativas del cargo'
+    soft_skills = data.get('skills_soft') or 'Puntualidad, Trabajo en Equipo, Honestidad, Adaptabilidad'
+    story.append(Paragraph(f"<b>Competencias Principales:</b> {hard_skills}", body_style))
+    story.append(Paragraph(f"<b>Valores & Aptitudes:</b> {soft_skills}", body_style))
 
     # 6. IDIOMAS (100% Opcional)
     lang_line = data.get('languages', '')
@@ -2231,6 +2484,7 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         raw_data = msg.web_app_data.data
         data = json.loads(raw_data)
         if data.get('action') == 'generate_cv':
+            context.user_data['cv_type'] = data.get('cv_type', 'formal_boxed')
             context.user_data['name'] = data.get('name', 'CANDIDATO PROFESIONAL')
             context.user_data['phone'] = data.get('phone', '')
             context.user_data['city'] = data.get('city', '')

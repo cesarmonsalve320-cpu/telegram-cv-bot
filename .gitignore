@@ -1,7 +1,9 @@
-﻿.env
+.env
 .venv/
 venv/
 __pycache__/
 *.pyc
 *.log
 .system_generated/
+test_*.py
+test_*.pdf

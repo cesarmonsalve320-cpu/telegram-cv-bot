@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Creador de CV Formal • Hoja de Vida Profesional</title>
+  <title>Creador de Curriculum Vitae Profesional</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,7 +36,44 @@
       font-size: 13.5px;
       user-select: none;
     }
-    .header { margin-bottom: 18px; text-align: center; padding: 8px 6px; }
+    
+    /* MODE TABS SWITCHER */
+    .mode-switcher {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      margin-bottom: 16px;
+    }
+    .mode-tab {
+      padding: 10px 8px;
+      border-radius: var(--radius-sm);
+      text-align: center;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .mode-tab.active {
+      background: var(--accent-blue);
+      color: #ffffff;
+      box-shadow: var(--shadow-tactile);
+    }
+    .mode-tab .tab-badge {
+      font-size: 9.5px;
+      opacity: 0.85;
+      font-weight: 500;
+    }
+
+    .header { margin-bottom: 16px; text-align: center; padding: 4px 6px; }
     .badge-pill {
       display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px;
       border-radius: 999px; background: rgba(37, 99, 235, 0.12);
@@ -109,10 +146,22 @@
 </head>
 <body>
 
+  <!-- SELECTOR DUAL DE MODO -->
+  <div class="mode-switcher">
+    <div class="mode-tab active" id="tabFormal" onclick="switchMode('formal')">
+      <span>📄 Hoja de Vida Formal</span>
+      <span class="tab-badge">Comercio, Ventas, Empresas</span>
+    </div>
+    <div class="mode-tab" id="tabRemote" onclick="switchMode('remote')">
+      <span>🚀 CV Remoto en USD</span>
+      <span class="tab-badge">Outlier, Remoto, ATS Harvard</span>
+    </div>
+  </div>
+
   <div class="header">
-    <div class="badge-pill">📄 Hoja de Vida Formal • Formato Oficial</div>
-    <h1>Creador de CV Formal</h1>
-    <p>Estructura ejecutiva y sobria para empleos tradicionales, comercios y empresas formales.</p>
+    <div class="badge-pill" id="headerBadge">📄 Hoja de Vida Formal • Formato Oficial</div>
+    <h1 id="headerTitle">Creador de CV Formal</h1>
+    <p id="headerDesc">Estructura ejecutiva y sobria con cajas elegantes para empleos tradicionales, comercios y empresas formales.</p>
   </div>
 
   <!-- 1. DATOS PERSONALES -->
@@ -133,16 +182,18 @@
       </div>
     </div>
     <div class="input-group" style="margin-top: 10px;">
-      <label>Correo Electrónico *</label>
+      <label id="labelEmail">Correo Electrónico *</label>
       <input type="email" id="inputEmail" class="input-field" placeholder="Ej: carlos.perez@gmail.com" maxlength="50">
     </div>
   </div>
 
   <!-- 2. CARGO / ÁREA LABORAL -->
-  <div class="section-title">💼 2. Área Laboral o Cargo Deseado</div>
+  <div class="section-title" id="secCargoTitle">💼 2. Área Laboral o Cargo Deseado</div>
   <div class="card">
-    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">Selecciona el área que mejor se adapta a tu perfil o escribe tu oficio:</p>
-    <div class="category-grid" id="categoryGrid">
+    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;" id="catHelpText">Selecciona el área que mejor se adapta a tu perfil o escribe tu oficio:</p>
+    
+    <!-- CATEGORÍAS FORMALES -->
+    <div class="category-grid" id="categoryGridFormal">
       <div class="category-card selected" data-cat="ventas" data-title="Ventas, Comercial & Cajero">
         <span class="cat-icon">🛒</span>
         <span class="cat-title">Ventas & Comercio</span>
@@ -194,63 +245,123 @@
         <span class="cat-desc">Personalizar cargo</span>
       </div>
     </div>
+
+    <!-- CATEGORÍAS REMOTAS (USD) -->
+    <div class="category-grid" id="categoryGridRemote" style="display: none;">
+      <div class="category-card" data-cat="outlier_ai" data-title="AI Training Specialist & Content Reviewer">
+        <span class="cat-icon">🤖</span>
+        <span class="cat-title">Outlier & AI Training</span>
+        <span class="cat-desc">Entrenamiento LLMs, RLHF</span>
+      </div>
+      <div class="category-card" data-cat="virtual_assistant" data-title="Bilingual Executive Assistant">
+        <span class="cat-icon">💼</span>
+        <span class="cat-title">Asistente Virtual</span>
+        <span class="cat-desc">Gestión remota, agenda, CRM</span>
+      </div>
+      <div class="category-card" data-cat="data_evaluator" data-title="Search & Data Quality Evaluator">
+        <span class="cat-icon">🔍</span>
+        <span class="cat-title">Evaluador de Datos</span>
+        <span class="cat-desc">Microtareas, precisión, UHRS</span>
+      </div>
+      <div class="category-card" data-cat="customer_support_remote" data-title="Customer Experience Specialist">
+        <span class="cat-icon">🎧</span>
+        <span class="cat-title">Soporte Remoto</span>
+        <span class="cat-desc">Chat, tickets, Zendesk</span>
+      </div>
+      <div class="category-card" data-cat="content_moderator" data-title="Trust & Safety Content Moderator">
+        <span class="cat-icon">🛡️</span>
+        <span class="cat-title">Moderador de Contenido</span>
+        <span class="cat-desc">Políticas, confianza, seguridad</span>
+      </div>
+      <div class="category-card" data-cat="custom_remote" data-title="Otro Rol Remoto">
+        <span class="cat-icon">✍️</span>
+        <span class="cat-title">Otro Rol Remoto</span>
+        <span class="cat-desc">Personalizar puesto</span>
+      </div>
+    </div>
+
     <div class="input-group" id="customTargetGroup" style="display: none; margin-top: 12px;">
       <label>Escribe el cargo o perfil deseado:</label>
-      <input type="text" id="inputCustomTarget" class="input-field" placeholder="Ej: Electricista, Pintor, Técnico de Celulares..." maxlength="40">
+      <input type="text" id="inputCustomTarget" class="input-field" placeholder="Ej: Especialista de Datos / Desarrollador..." maxlength="50">
     </div>
   </div>
 
-  <!-- 3. FORMACIÓN ACADÉMICA (SECUNDARIA Y PRIMARIA DETALLADAS) -->
+  <!-- 3. FORMACIÓN ACADÉMICA -->
   <div class="section-title">🎓 3. Formación Académica (Estudios)</div>
   <div class="card">
-    <div style="font-size: 11.5px; font-weight: 700; color: #93c5fd; margin-bottom: 8px;">A. Educación Secundaria / Bachillerato</div>
-    <div class="input-group">
-      <label>Colegio o Institución Educativa *</label>
-      <input type="text" id="inputSecundariaColegio" class="input-field" placeholder="Ej: Colegio San José / I.E. Nacional" maxlength="50">
-    </div>
-    <div class="grid-2">
+    <!-- BLOQUE FORMAL: SECUNDARIA Y PRIMARIA COMPLETAS -->
+    <div id="eduFormalBlock">
+      <div style="font-size: 11.5px; font-weight: 700; color: #93c5fd; margin-bottom: 8px;">A. Educación Secundaria / Bachillerato</div>
       <div class="input-group">
-        <label>Año de Grado / Finalización *</label>
-        <input type="text" id="inputSecundariaAno" class="input-field" placeholder="Ej: 2019" maxlength="10">
+        <label>Colegio o Institución Educativa *</label>
+        <input type="text" id="inputSecundariaColegio" class="input-field" placeholder="Ej: Colegio San José / I.E. Nacional" maxlength="50">
       </div>
+      <div class="grid-2">
+        <div class="input-group">
+          <label>Año de Grado / Finalización *</label>
+          <input type="text" id="inputSecundariaAno" class="input-field" placeholder="Ej: 2019" maxlength="10">
+        </div>
+        <div class="input-group">
+          <label>Estado Académico *</label>
+          <select id="selectSecundariaEstado" class="input-field">
+            <option value="Graduado (Bachiller Académico)">Graduado (Bachiller)</option>
+            <option value="Bachiller Técnico">Bachiller Técnico</option>
+            <option value="En Curso">En curso</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="font-size: 11.5px; font-weight: 700; color: #93c5fd; margin: 14px 0 8px;">B. Educación Primaria</div>
       <div class="input-group">
-        <label>Estado Académico *</label>
-        <select id="selectSecundariaEstado" class="input-field">
-          <option value="Graduado (Bachiller Académico)">Graduado (Bachiller)</option>
-          <option value="Bachiller Técnico">Bachiller Técnico</option>
-          <option value="En Curso">En curso</option>
-        </select>
+        <label>Escuela o Institución Primaria *</label>
+        <input type="text" id="inputPrimariaColegio" class="input-field" placeholder="Ej: Escuela Básica Departamental" maxlength="50">
+      </div>
+      <div class="grid-2">
+        <div class="input-group">
+          <label>Años Cursados *</label>
+          <input type="text" id="inputPrimariaAno" class="input-field" placeholder="Ej: 2008 - 2013" maxlength="15">
+        </div>
+        <div class="input-group">
+          <label>Estado *</label>
+          <select id="selectPrimariaEstado" class="input-field">
+            <option value="Completa">Primaria Completa</option>
+            <option value="En Curso">En curso</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="font-size: 11.5px; font-weight: 700; color: #94a3b8; margin: 14px 0 6px;">C. Estudios Superiores o Cursos <span style="font-weight:400; color:#64748b;">(Opcional)</span></div>
+      <div class="input-group">
+        <label>Técnico, Tecnólogo, Cursos: <span class="opt">Si no tienes, déjalo en blanco</span></label>
+        <input type="text" id="inputEstudiosExtra" class="input-field" placeholder="Ej: Técnico en Operaciones Logísticas (SENA) - 2022" maxlength="65">
       </div>
     </div>
 
-    <div style="font-size: 11.5px; font-weight: 700; color: #93c5fd; margin: 14px 0 8px;">B. Educación Primaria</div>
-    <div class="input-group">
-      <label>Escuela o Institución Primaria *</label>
-      <input type="text" id="inputPrimariaColegio" class="input-field" placeholder="Ej: Escuela Básica Departamental" maxlength="50">
-    </div>
-    <div class="grid-2">
+    <!-- BLOQUE REMOTO: UNIVERSIDAD / CERTIFICACIONES -->
+    <div id="eduRemoteBlock" style="display: none;">
       <div class="input-group">
-        <label>Años Cursados *</label>
-        <input type="text" id="inputPrimariaAno" class="input-field" placeholder="Ej: 2008 - 2013" maxlength="15">
+        <label>Universidad o Instituto Superior *</label>
+        <input type="text" id="inputRemoteUni" class="input-field" placeholder="Ej: Universidad Nacional / Instituto Tecnológico" maxlength="60">
       </div>
-      <div class="input-group">
-        <label>Estado *</label>
-        <select id="selectPrimariaEstado" class="input-field">
-          <option value="Completa">Primaria Completa</option>
-          <option value="En Curso">En curso</option>
-        </select>
+      <div class="grid-2">
+        <div class="input-group">
+          <label>Carrera o Área de Estudio *</label>
+          <input type="text" id="inputRemoteDegree" class="input-field" placeholder="Ej: Licenciatura / Ingeniería / Admin" maxlength="40">
+        </div>
+        <div class="input-group">
+          <label>Año de Grado o Estado *</label>
+          <input type="text" id="inputRemoteYear" class="input-field" placeholder="Ej: 2023 / En curso" maxlength="20">
+        </div>
       </div>
-    </div>
-
-    <div style="font-size: 11.5px; font-weight: 700; color: #94a3b8; margin: 14px 0 6px;">C. Estudios Superiores o Cursos <span style="font-weight:400; color:#64748b;">(Opcional)</span></div>
-    <div class="input-group">
-      <label>Técnico, Tecnólogo, Universitario o Cursos: <span class="opt">Si no tienes, déjalo en blanco</span></label>
-      <input type="text" id="inputEstudiosExtra" class="input-field" placeholder="Ej: Técnico en Operaciones Logísticas (SENA) - 2022" maxlength="65">
+      <div class="input-group" style="margin-top: 10px;">
+        <label>Certificaciones Relevantes <span class="opt">(Opcional)</span></label>
+        <input type="text" id="inputRemoteCerts" class="input-field" placeholder="Ej: EF SET C1 English, Google Digital Skills, Excel Avanzado" maxlength="70">
+      </div>
     </div>
   </div>
 
   <!-- 4. EXPERIENCIA LABORAL -->
-  <div class="section-title">🏢 4. Experiencia Laboral Anterior</div>
+  <div class="section-title">🏢 4. Experiencia Laboral</div>
   <div class="card">
     <div class="input-group">
       <label>¿Cuentas con experiencia laboral previa?</label>
@@ -262,7 +373,7 @@
 
     <div id="expFieldsContainer">
       <div class="input-group">
-        <label>Empresa o Negocio más reciente *</label>
+        <label id="labelExpEmpresa">Empresa o Negocio más reciente *</label>
         <input type="text" id="inputExpEmpresa" class="input-field" placeholder="Ej: Almacenes Éxito / Distribuidora San Juan" maxlength="50">
       </div>
       <div class="grid-2">
@@ -271,30 +382,40 @@
           <input type="text" id="inputExpCargo" class="input-field" placeholder="Ej: Asesor de Mostrador / Auxiliar" maxlength="40">
         </div>
         <div class="input-group">
-          <label>Tiempo / Años Trabajados *</label>
+          <label>Tiempo / Periodo *</label>
           <input type="text" id="inputExpPeriodo" class="input-field" placeholder="Ej: 2021 - 2023 (2 años)" maxlength="25">
         </div>
       </div>
       <div class="input-group" style="margin-top: 10px;">
-        <label>Funciones y Responsabilidades Principales: <span class="opt">(Opcional: el bot las redactará formalmente si lo dejas vacío)</span></label>
-        <input type="text" id="inputExpFunciones" class="input-field" placeholder="Ej: Atención al público, arqueo de caja, surtido de mercancía..." maxlength="100">
+        <label>Funciones y Logros: <span class="opt">(Opcional: el bot las optimizará profesionalmente si lo dejas vacío)</span></label>
+        <input type="text" id="inputExpFunciones" class="input-field" placeholder="Ej: Atención al público, arqueo de caja, gestión de stock..." maxlength="120">
       </div>
     </div>
 
     <div id="noExpInfo" style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-sm); padding: 10px; font-size: 11.5px; color: #a7f3d0;">
-      ✨ <b>Modalidad Primer Empleo Activada:</b> Tu CV destacará tu formación académica, alto sentido de responsabilidad, puntualidad, ganas de superación, adaptabilidad y disponibilidad inmediata.
+      ✨ <b>Modalidad Primer Empleo:</b> Tu CV enfatizará tu formación, alta ética laboral, puntualidad, ganas de superación, rapidez de aprendizaje y disponibilidad inmediata.
     </div>
   </div>
 
-  <!-- 5. IDIOMAS (100% OPCIONAL) -->
-  <div class="section-title">🌐 5. Idiomas (100% Opcional)</div>
+  <!-- 5. IDIOMAS -->
+  <div class="section-title">🌐 5. Nivel de Idiomas</div>
   <div class="card">
-    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">Para empleos normales solo se requiere Español. Si no manejas otro idioma, no te preocupes:</p>
-    <div class="option-row">
+    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;" id="langHelpText">Para empleos normales solo se requiere Español. Si no manejas otro idioma, no te preocupes:</p>
+    
+    <!-- Idiomas Formal -->
+    <div class="option-row" id="langOptionsFormal">
       <div class="pill-option selected" data-lang="native_only">✅ Solo Español (Nativo)</div>
       <div class="pill-option" data-lang="eng_basic">Inglés Básico</div>
       <div class="pill-option" data-lang="eng_inter">Inglés Intermedio</div>
       <div class="pill-option" data-lang="other">Otro Idioma</div>
+    </div>
+
+    <!-- Idiomas Remoto -->
+    <div class="option-row" id="langOptionsRemote" style="display: none;">
+      <div class="pill-option" data-lang="b1">B1 (Intermedio)</div>
+      <div class="pill-option selected" data-lang="b2">B2 (Conversacional)</div>
+      <div class="pill-option" data-lang="c1">C1 (Avanzado Fluido)</div>
+      <div class="pill-option" data-lang="native">Bilingüe Nativo</div>
     </div>
   </div>
 
@@ -308,12 +429,13 @@
     <div class="preview-item" id="prevEdu"><b>Educación:</b> Secundaria & Primaria completas</div>
     <div class="preview-item" id="prevExp"><b>Experiencia:</b> Registro laboral formal comprobable</div>
     <div class="preview-item" id="prevLang"><b>Idiomas:</b> Español (Nativo)</div>
+    <div class="preview-item" id="prevMode" style="color: #60a5fa; margin-top: 4px; font-weight: 600;">Formato: Hoja de Vida Formal (Diseño en Cajas Elegantes)</div>
   </div>
 
   <button type="button" class="btn-submit" id="btnSubmit">
-    <span>📄 Generar Hoja de Vida Formal (PDF)</span>
+    <span id="btnSubmitText">📄 Generar Hoja de Vida Formal (PDF)</span>
   </button>
-  <div class="footer-note">
+  <div class="footer-note" id="footerNote">
     Documento formal de 1 página listo para presentar a Recursos Humanos y empresas.
   </div>
 
@@ -324,52 +446,153 @@
       tg.expand();
     }
 
+    let currentMode = 'formal_boxed'; // 'formal_boxed' or 'remote_ats'
     let selectedCategory = 'ventas';
     let selectedCategoryTitle = 'Ventas, Comercial & Cajero';
     let selectedLanguage = 'native_only';
     let selectedLanguageText = 'Español (Nativo)';
     let hasExperience = true;
 
-    // Selector de Categorías
-    const catCards = document.querySelectorAll('.category-card');
-    const customGroup = document.getElementById('customTargetGroup');
-    const inputCustom = document.getElementById('inputCustomTarget');
+    function switchMode(mode) {
+      currentMode = mode === 'remote' ? 'remote_ats' : 'formal_boxed';
+      const tabFormal = document.getElementById('tabFormal');
+      const tabRemote = document.getElementById('tabRemote');
+      const headerBadge = document.getElementById('headerBadge');
+      const headerTitle = document.getElementById('headerTitle');
+      const headerDesc = document.getElementById('headerDesc');
+      const catFormal = document.getElementById('categoryGridFormal');
+      const catRemote = document.getElementById('categoryGridRemote');
+      const eduFormal = document.getElementById('eduFormalBlock');
+      const eduRemote = document.getElementById('eduRemoteBlock');
+      const langFormal = document.getElementById('langOptionsFormal');
+      const langRemote = document.getElementById('langOptionsRemote');
+      const btnSubmitText = document.getElementById('btnSubmitText');
+      const footerNote = document.getElementById('footerNote');
+      const catHelpText = document.getElementById('catHelpText');
+      const langHelpText = document.getElementById('langHelpText');
 
-    catCards.forEach(card => {
-      card.addEventListener('click', () => {
-        catCards.forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        selectedCategory = card.dataset.cat;
-        selectedCategoryTitle = card.dataset.title;
+      if (mode === 'remote') {
+        tabFormal.classList.remove('active');
+        tabRemote.classList.add('active');
+        headerBadge.textContent = '🚀 CV Remoto en USD • Harvard ATS Standard';
+        headerTitle.textContent = 'Creador de CV Remoto USD';
+        headerDesc.textContent = 'Optimizado 100% para filtros ATS internacionales, Outlier, Remotasks y salarios en dólares.';
+        
+        catFormal.style.display = 'none';
+        catRemote.style.display = 'grid';
+        eduFormal.style.display = 'none';
+        eduRemote.style.display = 'block';
+        langFormal.style.display = 'none';
+        langRemote.style.display = 'flex';
 
-        if (selectedCategory === 'custom') {
-          customGroup.style.display = 'block';
-          inputCustom.focus();
-        } else {
-          customGroup.style.display = 'none';
+        btnSubmitText.textContent = '🚀 Generar CV Remoto ATS (PDF)';
+        footerNote.textContent = 'Diseñado con estándar Harvard ATS de 1 columna para superar filtros de reclutadores en USD.';
+        catHelpText.textContent = 'Selecciona tu especialidad remota o de Inteligencia Artificial:';
+        langHelpText.textContent = 'Calibra tu nivel de inglés para plataformas internacionales:';
+
+        // Select first remote category
+        const firstRemote = catRemote.querySelector('.category-card');
+        if (firstRemote) {
+          catRemote.querySelectorAll('.category-card').forEach(c => c.classList.remove('selected'));
+          firstRemote.classList.add('selected');
+          selectedCategory = firstRemote.dataset.cat;
+          selectedCategoryTitle = firstRemote.dataset.title;
         }
+        selectedLanguage = 'b2';
+        selectedLanguageText = 'Inglés B2 (Conversacional)';
+        langRemote.querySelectorAll('.pill-option').forEach(p => p.classList.remove('selected'));
+        const b2Pill = langRemote.querySelector('[data-lang="b2"]');
+        if (b2Pill) b2Pill.classList.add('selected');
 
-        if (selectedCategory === 'primer_empleo') {
-          toggleExpMode(false);
+      } else {
+        tabFormal.classList.add('active');
+        tabRemote.classList.remove('active');
+        headerBadge.textContent = '📄 Hoja de Vida Formal • Formato Oficial';
+        headerTitle.textContent = 'Creador de CV Formal';
+        headerDesc.textContent = 'Estructura ejecutiva y sobria con cajas elegantes para empleos tradicionales, comercios y empresas formales.';
+        
+        catFormal.style.display = 'grid';
+        catRemote.style.display = 'none';
+        eduFormal.style.display = 'block';
+        eduRemote.style.display = 'none';
+        langFormal.style.display = 'flex';
+        langRemote.style.display = 'none';
+
+        btnSubmitText.textContent = '📄 Generar Hoja de Vida Formal (PDF)';
+        footerNote.textContent = 'Documento formal de 1 página listo para presentar a Recursos Humanos y empresas.';
+        catHelpText.textContent = 'Selecciona el área que mejor se adapta a tu perfil o escribe tu oficio:';
+        langHelpText.textContent = 'Para empleos normales solo se requiere Español. Si no manejas otro idioma, no te preocupes:';
+
+        // Select first formal category
+        const firstFormal = catFormal.querySelector('.category-card');
+        if (firstFormal) {
+          catFormal.querySelectorAll('.category-card').forEach(c => c.classList.remove('selected'));
+          firstFormal.classList.add('selected');
+          selectedCategory = firstFormal.dataset.cat;
+          selectedCategoryTitle = firstFormal.dataset.title;
         }
+        selectedLanguage = 'native_only';
+        selectedLanguageText = 'Español (Nativo)';
+        langFormal.querySelectorAll('.pill-option').forEach(p => p.classList.remove('selected'));
+        const natPill = langFormal.querySelector('[data-lang="native_only"]');
+        if (natPill) natPill.classList.add('selected');
+      }
 
-        if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-        updatePreview();
-      });
-    });
+      document.getElementById('customTargetGroup').style.display = 'none';
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+      updatePreview();
+    }
 
-    // Selector de Idiomas (Opcional)
-    const langPills = document.querySelectorAll('[data-lang]');
-    langPills.forEach(pill => {
-      pill.addEventListener('click', () => {
-        langPills.forEach(p => p.classList.remove('selected'));
-        pill.classList.add('selected');
-        selectedLanguage = pill.dataset.lang;
-        selectedLanguageText = pill.textContent.replace('✅ ', '');
-        if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-        updatePreview();
+    // Category click handler
+    function bindCategoryEvents(containerId) {
+      const container = document.getElementById(containerId);
+      const cards = container.querySelectorAll('.category-card');
+      const customGroup = document.getElementById('customTargetGroup');
+      const inputCustom = document.getElementById('inputCustomTarget');
+
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          cards.forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          selectedCategory = card.dataset.cat;
+          selectedCategoryTitle = card.dataset.title;
+
+          if (selectedCategory.includes('custom')) {
+            customGroup.style.display = 'block';
+            inputCustom.focus();
+          } else {
+            customGroup.style.display = 'none';
+          }
+
+          if (selectedCategory === 'primer_empleo') {
+            toggleExpMode(false);
+          }
+
+          if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+          updatePreview();
+        });
       });
-    });
+    }
+    bindCategoryEvents('categoryGridFormal');
+    bindCategoryEvents('categoryGridRemote');
+
+    // Language selector
+    function bindLangEvents(containerId) {
+      const container = document.getElementById(containerId);
+      const pills = container.querySelectorAll('.pill-option');
+      pills.forEach(pill => {
+        pill.addEventListener('click', () => {
+          pills.forEach(p => p.classList.remove('selected'));
+          pill.classList.add('selected');
+          selectedLanguage = pill.dataset.lang;
+          selectedLanguageText = pill.textContent.replace('✅ ', '');
+          if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+          updatePreview();
+        });
+      });
+    }
+    bindLangEvents('langOptionsFormal');
+    bindLangEvents('langOptionsRemote');
 
     // Toggle de experiencia
     function toggleExpMode(enabled) {
@@ -399,13 +622,17 @@
     const inputPhone = document.getElementById('inputPhone');
     const inputCity = document.getElementById('inputCity');
     const inputEmail = document.getElementById('inputEmail');
+    const inputCustom = document.getElementById('inputCustomTarget');
 
     const inputSecColegio = document.getElementById('inputSecundariaColegio');
     const inputSecAno = document.getElementById('inputSecundariaAno');
     const selectSecEstado = document.getElementById('selectSecundariaEstado');
-
     const inputPriColegio = document.getElementById('inputPrimariaColegio');
     const inputPriAno = document.getElementById('inputPrimariaAno');
+
+    const inputRemoteUni = document.getElementById('inputRemoteUni');
+    const inputRemoteDegree = document.getElementById('inputRemoteDegree');
+    const inputRemoteYear = document.getElementById('inputRemoteYear');
 
     const prevName = document.getElementById('prevName');
     const prevMeta = document.getElementById('prevMeta');
@@ -413,6 +640,7 @@
     const prevEdu = document.getElementById('prevEdu');
     const prevExp = document.getElementById('prevExp');
     const prevLang = document.getElementById('prevLang');
+    const prevMode = document.getElementById('prevMode');
 
     function updatePreview() {
       const name = inputName.value.trim() || 'TU NOMBRE COMPLETO';
@@ -424,17 +652,29 @@
       prevMeta.textContent = city + ' • ' + phone + ' • ' + email;
 
       let cargo = selectedCategoryTitle;
-      if (selectedCategory === 'custom' && inputCustom.value.trim()) {
+      if (selectedCategory.includes('custom') && inputCustom.value.trim()) {
         cargo = inputCustom.value.trim();
       }
       prevCargo.innerHTML = '<b>Cargo Objetivo:</b> ' + cargo;
 
-      const secCol = inputSecColegio.value.trim();
-      const secAno = inputSecAno.value.trim();
-      if (secCol) {
-        prevEdu.innerHTML = '<b>Educación:</b> ' + secCol + (secAno ? ' (' + secAno + ')' : '') + ' • Primaria Registrada';
+      if (currentMode === 'formal_boxed') {
+        prevMode.textContent = 'Formato: Hoja de Vida Formal (Diseño en Cajas Elegantes)';
+        const secCol = inputSecColegio.value.trim();
+        const secAno = inputSecAno.value.trim();
+        if (secCol) {
+          prevEdu.innerHTML = '<b>Educación:</b> ' + secCol + (secAno ? ' (' + secAno + ')' : '') + ' • Primaria Registrada';
+        } else {
+          prevEdu.innerHTML = '<b>Educación:</b> Secundaria & Primaria completas';
+        }
       } else {
-        prevEdu.innerHTML = '<b>Educación:</b> Secundaria & Primaria completas';
+        prevMode.textContent = 'Formato: CV Remoto en USD (Harvard ATS 1-Columna)';
+        const uni = inputRemoteUni.value.trim();
+        const deg = inputRemoteDegree.value.trim();
+        if (uni || deg) {
+          prevEdu.innerHTML = '<b>Educación:</b> ' + (deg || 'Estudios') + ' - ' + (uni || 'Universidad');
+        } else {
+          prevEdu.innerHTML = '<b>Educación:</b> Educación Superior & Certificaciones Remotas';
+        }
       }
 
       if (hasExperience) {
@@ -443,7 +683,7 @@
         if (emp && car) {
           prevExp.innerHTML = '<b>Experiencia:</b> ' + car + ' en ' + emp;
         } else {
-          prevExp.innerHTML = '<b>Experiencia:</b> Registro laboral previo formal';
+          prevExp.innerHTML = '<b>Experiencia:</b> ' + (currentMode === 'formal_boxed' ? 'Registro laboral formal comprobable' : 'Proyectos / Experiencia remota cuantificable');
         }
       } else {
         prevExp.innerHTML = '<b>Experiencia:</b> Modalidad Primer Empleo (Aptitudes & Formación)';
@@ -452,7 +692,10 @@
       prevLang.innerHTML = '<b>Idiomas:</b> ' + selectedLanguageText;
     }
 
-    [inputName, inputPhone, inputCity, inputEmail, inputSecColegio, inputSecAno, inputPriColegio, inputPriAno, inputCustom, document.getElementById('inputExpEmpresa'), document.getElementById('inputExpCargo')].forEach(inp => {
+    [inputName, inputPhone, inputCity, inputEmail, inputCustom,
+     inputSecColegio, inputSecAno, inputPriColegio, inputPriAno,
+     inputRemoteUni, inputRemoteDegree, inputRemoteYear,
+     document.getElementById('inputExpEmpresa'), document.getElementById('inputExpCargo')].forEach(inp => {
       if (inp) inp.addEventListener('input', updatePreview);
     });
 
@@ -482,34 +725,51 @@
         return;
       }
 
-      const secColegio = inputSecColegio.value.trim() || 'Colegio de Educación Secundaria';
-      const secAno = inputSecAno.value.trim() || 'Graduado';
-      const secEstado = selectSecEstado.value;
-
-      const priColegio = inputPrimariaColegio.value.trim() || 'Escuela de Educación Primaria';
-      const priAno = inputPrimariaAno.value.trim() || 'Completa';
-      const priEstado = document.getElementById('selectPrimariaEstado').value;
-
-      const estudiosExtra = document.getElementById('inputEstudiosExtra').value.trim();
-
       let targetRole = selectedCategoryTitle;
-      if (selectedCategory === 'custom' && inputCustom.value.trim()) {
+      if (selectedCategory.includes('custom') && inputCustom.value.trim()) {
         targetRole = inputCustom.value.trim();
       }
 
       let expData = null;
       if (hasExperience) {
         expData = {
-          empresa: document.getElementById('inputExpEmpresa').value.trim() || 'Empresa Comercial / Servicios',
+          empresa: document.getElementById('inputExpEmpresa').value.trim() || (currentMode === 'formal_boxed' ? 'Empresa Comercial / Servicios' : 'Remote AI / Operations Client'),
           cargo: document.getElementById('inputExpCargo').value.trim() || targetRole,
           periodo: document.getElementById('inputExpPeriodo').value.trim() || '2 años',
           funciones: document.getElementById('inputExpFunciones').value.trim()
         };
       }
 
+      let educationPayload = null;
+      if (currentMode === 'formal_boxed') {
+        const secColegio = inputSecColegio.value.trim() || 'Colegio de Educación Secundaria';
+        const secAno = inputSecAno.value.trim() || 'Graduado';
+        const secEstado = selectSecEstado.value;
+
+        const priColegio = inputPrimariaColegio.value.trim() || 'Escuela de Educación Primaria';
+        const priAno = inputPriAno.value.trim() || 'Completa';
+        const priEstado = document.getElementById('selectPrimariaEstado').value;
+        const estudiosExtra = document.getElementById('inputEstudiosExtra').value.trim();
+
+        educationPayload = {
+          secundaria: { colegio: secColegio, ano: secAno, estado: secEstado },
+          primaria: { colegio: priColegio, ano: priAno, estado: priEstado },
+          extra: estudiosExtra
+        };
+      } else {
+        const uni = inputRemoteUni.value.trim() || 'Universidad / Instituto Superior';
+        const degree = inputRemoteDegree.value.trim() || 'Estudios Profesionales';
+        const year = inputRemoteYear.value.trim() || 'Completado';
+        const certs = document.getElementById('inputRemoteCerts').value.trim();
+        educationPayload = {
+          universidad: { institucion: uni, titulo: degree, ano: year },
+          certificaciones: certs
+        };
+      }
+
       const payload = {
         action: 'generate_cv',
-        cv_type: 'formal_standard',
+        cv_type: currentMode,
         name: name,
         phone: phone,
         city: city,
@@ -518,11 +778,7 @@
         target_role: targetRole,
         has_experience: hasExperience,
         experience_data: expData,
-        education: {
-          secundaria: { colegio: secColegio, ano: secAno, estado: secEstado },
-          primaria: { colegio: priColegio, ano: priAno, estado: priEstado },
-          extra: estudiosExtra
-        },
+        education: educationPayload,
         language: selectedLanguage,
         language_text: selectedLanguageText
       };
@@ -534,7 +790,7 @@
       if (tg && tg.sendData) {
         tg.sendData(JSON.stringify(payload));
       } else {
-        alert('Hoja de vida compilada para el bot: ' + JSON.stringify(payload));
+        alert('Datos enviados al bot (' + currentMode + '): ' + JSON.stringify(payload));
       }
     });
   </script>

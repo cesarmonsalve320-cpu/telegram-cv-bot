@@ -743,7 +743,8 @@
     }
 
     function switchMode(mode) {
-      currentMode = mode === 'remote' ? 'remote_ats' : 'formal_boxed';
+      const isRemote = (mode === 'remote' || mode === 'remote_ats');
+      currentMode = isRemote ? 'remote_ats' : 'formal_boxed';
       const tabFormal = document.getElementById('tabFormal');
       const tabRemote = document.getElementById('tabRemote');
       const headerBadge = document.getElementById('headerBadge');
@@ -760,7 +761,7 @@
       const catHelpText = document.getElementById('catHelpText');
       const langHelpText = document.getElementById('langHelpText');
 
-      if (mode === 'remote') {
+      if (isRemote) {
         tabFormal.classList.remove('active');
         tabRemote.classList.add('active');
         headerBadge.textContent = '🚀 CV Remoto en USD • Harvard ATS Standard';
@@ -1231,20 +1232,28 @@
     updateBoosterCard(selectedCategory);
 
     // Soporte para selección directa de modo por query param (?mode=formal o ?mode=remote)
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      let modeParam = urlParams.get('mode');
-      if (!modeParam && window.location.hash) {
-        const hashMatch = window.location.hash.match(/[?&]mode=([a-zA-Z0-9_-]+)/);
-        if (hashMatch) modeParam = hashMatch[1];
+    function applyUrlMode() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        let modeParam = urlParams.get('mode');
+        if (!modeParam && window.location.hash) {
+          const hashMatch = window.location.hash.match(/[?&]mode=([a-zA-Z0-9_-]+)/);
+          if (hashMatch) modeParam = hashMatch[1];
+        }
+        if (modeParam === 'remote' || modeParam === 'remote_ats') {
+          switchMode('remote');
+        } else if (modeParam === 'formal' || modeParam === 'formal_boxed') {
+          switchMode('formal');
+        }
+      } catch (e) {
+        console.error('Error procesando parámetro de modo:', e);
       }
-      if (modeParam === 'remote') {
-        switchMode('remote');
-      } else if (modeParam === 'formal') {
-        switchMode('formal');
-      }
-    } catch (e) {
-      console.error('Error procesando parámetro de modo:', e);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', applyUrlMode);
+    } else {
+      applyUrlMode();
     }
   </script>
 </body>

@@ -191,7 +191,8 @@ def get_main_reply_keyboard(user_id=None, mode=None):
         return get_remote_reply_keyboard(user_id)
     # Si aún no ha seleccionado modo, ofrecer acceso directo
     buttons = [
-        [KeyboardButton("📄 Modo 1: Hoja de Vida Formal"), KeyboardButton("🚀 Modo 2: Empleos Remotos USD")]
+        [KeyboardButton("📄 Modo 1: Hoja de Vida Formal (Trabajo Normal / Presencial)")],
+        [KeyboardButton("🚀 Modo 2: Empleos Remotos en Dólares (Outlier / IA / ATS)")]
     ]
     if user_id and is_admin(user_id):
         buttons.append([KeyboardButton(BTN_BOTTOM_ADMIN)])
@@ -740,19 +741,27 @@ async def show_mode_selection(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
 
     inline_selection = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📄 Modo 1: Hoja de Vida Formal (Normal)", callback_data="set_mode_formal")],
-        [InlineKeyboardButton("🚀 Modo 2: Empleos Remotos en USD (ATS)", callback_data="set_mode_remote")]
+        [InlineKeyboardButton("📄 Modo 1: Hoja de Vida Formal (Trabajo Normal / Presencial)", callback_data="set_mode_formal")],
+        [InlineKeyboardButton("🚀 Modo 2: Empleos Remotos en Dólares (Outlier / IA / ATS)", callback_data="set_mode_remote")]
     ])
+    user_id = user.id if user else None
+    persistent_selection = get_main_reply_keyboard(user_id)
 
     query = update.callback_query
     if query and query.message:
         await safe_edit_text(query, selection_text, parse_mode='Markdown', reply_markup=inline_selection)
+        if user_id:
+            try:
+                await context.bot.send_message(chat_id=user_id, text="👇 Selecciona tu modalidad en los botones:", reply_markup=persistent_selection)
+            except Exception:
+                pass
     elif update.message:
         await update.message.reply_text(
             selection_text,
             parse_mode='Markdown',
             reply_markup=inline_selection
         )
+        await update.message.reply_text("👇 Selecciona tu modalidad en los botones:", reply_markup=persistent_selection)
     return ConversationHandler.END
 
 
@@ -792,7 +801,12 @@ async def show_formal_dashboard(update: Update, context: ContextTypes.DEFAULT_TY
         try:
             await safe_edit_text(query, dashboard_text, parse_mode='Markdown', reply_markup=inline_dashboard)
         except Exception:
-            await query.message.reply_text(dashboard_text, parse_mode='Markdown', reply_markup=persistent_keyboard)
+            await query.message.reply_text(dashboard_text, parse_mode='Markdown', reply_markup=inline_dashboard)
+        if user and user.id:
+            try:
+                await context.bot.send_message(chat_id=user.id, text="⌨️ Menú táctil activado para **Modo Formal** 👇", parse_mode='Markdown', reply_markup=persistent_keyboard)
+            except Exception:
+                pass
     elif update.message:
         if os.path.exists(WELCOME_BANNER_PATH):
             with open(WELCOME_BANNER_PATH, 'rb') as photo_file:
@@ -800,14 +814,15 @@ async def show_formal_dashboard(update: Update, context: ContextTypes.DEFAULT_TY
                     photo=photo_file,
                     caption=dashboard_text,
                     parse_mode='Markdown',
-                    reply_markup=persistent_keyboard
+                    reply_markup=inline_dashboard
                 )
         else:
             await update.message.reply_text(
                 dashboard_text,
                 parse_mode='Markdown',
-                reply_markup=persistent_keyboard
+                reply_markup=inline_dashboard
             )
+        await update.message.reply_text("⌨️ Menú táctil activado para **Modo Formal** 👇", parse_mode='Markdown', reply_markup=persistent_keyboard)
 
     return ConversationHandler.END
 
@@ -853,7 +868,12 @@ async def show_remote_dashboard(update: Update, context: ContextTypes.DEFAULT_TY
         try:
             await safe_edit_text(query, dashboard_text, parse_mode='Markdown', reply_markup=inline_dashboard)
         except Exception:
-            await query.message.reply_text(dashboard_text, parse_mode='Markdown', reply_markup=persistent_keyboard)
+            await query.message.reply_text(dashboard_text, parse_mode='Markdown', reply_markup=inline_dashboard)
+        if user and user.id:
+            try:
+                await context.bot.send_message(chat_id=user.id, text="⌨️ Menú táctil activado para **Modo Remoto USD** 👇", parse_mode='Markdown', reply_markup=persistent_keyboard)
+            except Exception:
+                pass
     elif update.message:
         if os.path.exists(WELCOME_BANNER_PATH):
             with open(WELCOME_BANNER_PATH, 'rb') as photo_file:
@@ -861,14 +881,15 @@ async def show_remote_dashboard(update: Update, context: ContextTypes.DEFAULT_TY
                     photo=photo_file,
                     caption=dashboard_text,
                     parse_mode='Markdown',
-                    reply_markup=persistent_keyboard
+                    reply_markup=inline_dashboard
                 )
         else:
             await update.message.reply_text(
                 dashboard_text,
                 parse_mode='Markdown',
-                reply_markup=persistent_keyboard
+                reply_markup=inline_dashboard
             )
+        await update.message.reply_text("⌨️ Menú táctil activado para **Modo Remoto USD** 👇", parse_mode='Markdown', reply_markup=persistent_keyboard)
 
     return ConversationHandler.END
 
@@ -953,8 +974,7 @@ async def formal_interview_tips_handler(update: Update, context: ContextTypes.DE
     if query:
         await safe_edit_text(query, tips_text, parse_mode='Markdown', reply_markup=reply_markup)
     else:
-        persistent_keyboard = get_formal_reply_keyboard(user_id)
-        await msg.reply_text(tips_text, parse_mode='Markdown', reply_markup=persistent_keyboard)
+        await msg.reply_text(tips_text, parse_mode='Markdown', reply_markup=reply_markup)
 
 
 async def formal_faqs_salary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -995,8 +1015,7 @@ async def formal_faqs_salary_handler(update: Update, context: ContextTypes.DEFAU
     if query:
         await safe_edit_text(query, faqs_text, parse_mode='Markdown', reply_markup=reply_markup)
     else:
-        persistent_keyboard = get_formal_reply_keyboard(user_id)
-        await msg.reply_text(faqs_text, parse_mode='Markdown', reply_markup=persistent_keyboard)
+        await msg.reply_text(faqs_text, parse_mode='Markdown', reply_markup=reply_markup)
 
 
 async def channel_link_tracker_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1374,9 +1393,9 @@ async def user_text_input_dispatcher(update: Update, context: ContextTypes.DEFAU
         return await switch_to_formal_handler(update, context)
 
     # Selección directa sin modo configurado
-    elif text == "📄 Modo 1: Hoja de Vida Formal":
+    elif text in ("📄 Modo 1: Hoja de Vida Formal (Trabajo Normal / Presencial)", "📄 Modo 1: Hoja de Vida Formal") or text.startswith("📄 Modo 1: Hoja de Vida Formal"):
         return await switch_to_formal_handler(update, context)
-    elif text == "🚀 Modo 2: Empleos Remotos USD":
+    elif text in ("🚀 Modo 2: Empleos Remotos en Dólares (Outlier / IA / ATS)", "🚀 Modo 2: Empleos Remotos USD") or text.startswith("🚀 Modo 2: Empleos Remotos"):
         return await switch_to_remote_handler(update, context)
 
     # Botones legacy de compatibilidad
@@ -1770,10 +1789,11 @@ async def check_dock_interrupt(update: Update, context: ContextTypes.DEFAULT_TYP
     dock_buttons = [
         BTN_FORMAL_CV, BTN_FORMAL_TIPS, BTN_FORMAL_FAQS, BTN_FORMAL_SWITCH_REMOTE,
         BTN_REMOTE_CV, BTN_REMOTE_BOOST, BTN_REMOTE_KIT, BTN_REMOTE_CHANNEL, BTN_REMOTE_GUIDE, BTN_REMOTE_SWITCH_FORMAL,
+        "📄 Modo 1: Hoja de Vida Formal (Trabajo Normal / Presencial)", "🚀 Modo 2: Empleos Remotos en Dólares (Outlier / IA / ATS)",
         "📄 Modo 1: Hoja de Vida Formal", "🚀 Modo 2: Empleos Remotos USD",
         BTN_BOTTOM_CV, BTN_BOTTOM_BOOST, BTN_BOTTOM_PACK, BTN_BOTTOM_CHANNEL, BTN_BOTTOM_KIT, BTN_BOTTOM_GUIDE, BTN_BOTTOM_ATS, BTN_BOTTOM_ALERTS, BTN_BOTTOM_ADMIN
     ]
-    if raw_text not in dock_buttons:
+    if raw_text not in dock_buttons and not raw_text.startswith("📄 Modo 1: Hoja de Vida Formal") and not raw_text.startswith("🚀 Modo 2: Empleos Remotos"):
         return False, 0
 
     user = update.effective_user
@@ -1810,9 +1830,9 @@ async def check_dock_interrupt(update: Update, context: ContextTypes.DEFAULT_TYP
         await guide_interviews_callback(update, context)
     elif raw_text == BTN_REMOTE_SWITCH_FORMAL:
         await switch_to_formal_handler(update, context)
-    elif raw_text == "📄 Modo 1: Hoja de Vida Formal":
+    elif raw_text in ("📄 Modo 1: Hoja de Vida Formal (Trabajo Normal / Presencial)", "📄 Modo 1: Hoja de Vida Formal") or raw_text.startswith("📄 Modo 1: Hoja de Vida Formal"):
         await switch_to_formal_handler(update, context)
-    elif raw_text == "🚀 Modo 2: Empleos Remotos USD":
+    elif raw_text in ("🚀 Modo 2: Empleos Remotos en Dólares (Outlier / IA / ATS)", "🚀 Modo 2: Empleos Remotos USD") or raw_text.startswith("🚀 Modo 2: Empleos Remotos"):
         await switch_to_remote_handler(update, context)
     elif raw_text == BTN_BOTTOM_CV:
         res = await start_cv_step_1(update.message, context)
@@ -2194,6 +2214,14 @@ async def handle_education_callback(update: Update, context: ContextTypes.DEFAUL
         }
     }
 
+    edu_labels = {
+        "edu_university": "Universitario Titulado / Superior" if context.user_data.get('cv_type') == 'remote_ats' else "Estudios Universitarios",
+        "edu_technician": "Universitario en Curso" if context.user_data.get('cv_type') == 'remote_ats' else "Técnico / Tecnológico (SENA o Instituto)",
+        "edu_highschool": "Técnico Especializado" if context.user_data.get('cv_type') == 'remote_ats' else "Secundaria / Bachiller Completo & Primaria",
+        "edu_primaria": "Certificaciones Profesionales" if context.user_data.get('cv_type') == 'remote_ats' else "Primaria Completa"
+    }
+    edu_display = edu_labels.get(query.data, "Formación Académica Completa")
+
     if context.user_data.get('cv_type') == 'remote_ats':
         context.user_data['education'] = edu_remote_map.get(query.data, edu_remote_map["edu_university"])
     else:
@@ -2209,7 +2237,7 @@ async def handle_education_callback(update: Update, context: ContextTypes.DEFAUL
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.message.reply_text(
-        f"🎓 Educación: **{context.user_data['education']}**\n\n"
+        f"🎓 Educación: **{edu_display}**\n\n"
         "📋 **PASO 6 DE 6 • TRAYECTORIA LABORAL**\n"
         "`[██████████] 100% completado`\n"
         "───────────────────────────────────\n"
@@ -2229,8 +2257,19 @@ async def handle_experience_level_callback(update: Update, context: ContextTypes
 
     if exp_code == "custom":
         cancel_markup = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancelar y Volver", callback_data="btn_cancel_cv")]])
+        is_remote = context.user_data.get('cv_type') == 'remote_ats'
+        if is_remote:
+            prompt_exp = (
+                "✍️ Cuéntame brevemente qué trabajos has desempeñado o qué tareas realizabas:\n"
+                "*(No te preocupes por el orden, el bot lo estructurará bajo la fórmula cuantitativa XYZ para filtros ATS)*"
+            )
+        else:
+            prompt_exp = (
+                "✍️ Cuéntame brevemente en qué empresas o cargos has trabajado y qué funciones realizabas:\n"
+                "*(No te preocupes por la redacción, el bot organizará tu experiencia de forma sobria, formal y ordenada en tu hoja de vida)*"
+            )
         await query.message.reply_text(
-            "✍️ Cuéntame brevemente qué trabajos has desempeñado o qué tareas realizabas:\n*(No te preocupes por el orden, el bot lo estructurará bajo la fórmula cuantitativa XYZ)*",
+            prompt_exp,
             parse_mode='Markdown',
             reply_markup=cancel_markup
         )
@@ -2258,29 +2297,44 @@ async def receive_custom_experience(update: Update, context: ContextTypes.DEFAUL
 # ========================================================
 async def generate_and_send_final_cv(message, user, context) -> int:
     """Genera el PDF ejecutivo, lo envía y muestra diagnósticos con botones."""
-    status_msg = await message.reply_text(
-        "⚙️ **COMPILANDO CURRÍCULUM ATS DE ALTA CONVERSIÓN...**\n"
-        "`[██████████] 100%`\n"
-        "───────────────────────────────────\n"
-        "▸ Estructurando datos bajo formato Harvard (1 columna)...\n"
-        "▸ Optimizando palabras clave para filtros ATS...\n"
-        "▸ Redactando fórmulas XYZ con métricas cuantitativas...\n"
-        "▸ Generando documento vectorial de 1 página...",
-        parse_mode='Markdown'
-    )
+    cv_mode = context.user_data.get('cv_type', 'formal_boxed')
+    if cv_mode == 'remote_ats':
+        status_text = (
+            "⚙️ **COMPILANDO CURRÍCULUM ATS DE ALTA CONVERSIÓN...**\n"
+            "`[██████████] 100%`\n"
+            "───────────────────────────────────\n"
+            "▸ Estructurando datos bajo formato Harvard (1 columna)...\n"
+            "▸ Optimizando palabras clave para filtros ATS...\n"
+            "▸ Redactando fórmulas XYZ con métricas cuantitativas...\n"
+            "▸ Generando documento vectorial de 1 página..."
+        )
+    else:
+        status_text = (
+            "⚙️ **COMPILANDO HOJA DE VIDA FORMAL EJECUTIVA...**\n"
+            "`[██████████] 100%`\n"
+            "───────────────────────────────────\n"
+            "▸ Estructurando formato formal sobrio y ordenado en cajas...\n"
+            "▸ Organizando datos de contacto, educación y trayectoria laboral...\n"
+            "▸ Redactando funciones formales y logros comprobables...\n"
+            "▸ Generando documento PDF listo para imprimir (1 página)..."
+        )
+    status_msg = await message.reply_text(status_text, parse_mode='Markdown')
 
     try:
         cv_payload = generate_elite_cv_data(context.user_data)
-        cv_mode = context.user_data.get('cv_type', 'formal_boxed')
         if cv_mode == 'remote_ats':
             pdf_bytes = build_ats_pdf(cv_payload)
         else:
             pdf_bytes = build_formal_boxed_pdf(cv_payload)
 
-        candidate_filename = cv_payload['name'].replace(" ", "_")
-        filename = f"CV_{candidate_filename}_ATS_2026.pdf"
+        raw_cname = cv_payload.get('name', 'CANDIDATO').replace(" ", "_")
+        candidate_filename = re.sub(r'[^a-zA-Z0-9_]', '', raw_cname) or "CANDIDATO"
+        if cv_mode == 'remote_ats':
+            filename = f"CV_{candidate_filename}_ATS_2026.pdf"
+        else:
+            filename = f"Hoja_De_Vida_{candidate_filename}_2026.pdf"
 
-        target_title = context.user_data.get('target_job', 'Trabajo Remoto')
+        target_title = context.user_data.get('target_job', 'Trabajo Remoto' if cv_mode == 'remote_ats' else 'Cargo Formal')
 
         if cv_mode == 'remote_ats':
             caption = (
@@ -2308,12 +2362,14 @@ async def generate_and_send_final_cv(message, user, context) -> int:
         if cv_mode == 'remote_ats':
             keyboard = [
                 [InlineKeyboardButton("🎁 Pack Secreto: Respuestas Examen Outlier", callback_data="btn_referrals_menu")],
-                [InlineKeyboardButton("🎯 Optimizar Otra Vacante (Boost)", callback_data="btn_boost_menu")]
+                [InlineKeyboardButton("🎯 Optimizar Otra Vacante (Boost)", callback_data="btn_boost_menu")],
+                [InlineKeyboardButton("🏠 Menú Principal", callback_data="btn_back_menu")]
             ]
         else:
             keyboard = [
-                [InlineKeyboardButton("💡 Consejos para tu Entrevista de Trabajo", callback_data="btn_formal_tips")],
-                [InlineKeyboardButton("📄 Crear Otra Hoja de Vida Formal", callback_data="btn_start_cv_formal")]
+                [InlineKeyboardButton("💡 Consejos para Entrevistas de Trabajo", callback_data="btn_formal_tips")],
+                [InlineKeyboardButton("📄 Crear Otra Hoja de Vida Formal", callback_data="btn_start_cv_formal")],
+                [InlineKeyboardButton("🏠 Menú Principal", callback_data="btn_back_menu")]
             ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -4611,7 +4667,13 @@ def main():
         },
         fallbacks=[
             CommandHandler('cancel', cancel),
-            CallbackQueryHandler(cancel_cv_callback, pattern="^btn_cancel_cv$")
+            CommandHandler('start', start),
+            CommandHandler(['modo', 'cambiar', 'cambiarmodo', 'switch'], mode_command),
+            CommandHandler(['admin', 'panel'], admin_panel_command),
+            CommandHandler(['boost', 'hacks', 'trampa', 'optimizar', 'cheat'], boost_menu_callback),
+            CallbackQueryHandler(cancel_cv_callback, pattern="^btn_cancel_cv$"),
+            CallbackQueryHandler(start, pattern="^btn_back_menu$"),
+            CallbackQueryHandler(set_mode_callback, pattern="^(set_mode_|btn_switch_to_)")
         ],
         allow_reentry=True
     )
@@ -4676,8 +4738,8 @@ def main():
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_REMOTE_GUIDE)}$"), guide_interviews_callback))
 
     # Selección directa sin modo
-    app.add_handler(MessageHandler(filters.Regex(r"^📄 Modo 1: Hoja de Vida Formal$"), switch_to_formal_handler))
-    app.add_handler(MessageHandler(filters.Regex(r"^🚀 Modo 2: Empleos Remotos USD$"), switch_to_remote_handler))
+    app.add_handler(MessageHandler(filters.Regex(r"^📄 Modo 1: Hoja de Vida Formal"), switch_to_formal_handler))
+    app.add_handler(MessageHandler(filters.Regex(r"^🚀 Modo 2: Empleos Remotos"), switch_to_remote_handler))
 
     # Compatibilidad histórica
     app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_BOOST)}$"), boost_menu_callback))

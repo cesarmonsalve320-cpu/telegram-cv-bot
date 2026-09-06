@@ -86,6 +86,12 @@ if not os.path.exists(KIT_MAESTRO_PDF_PATH):
 SUBSCRIBERS_FILE = os.path.join(os.path.dirname(__file__), 'subscribers.json')
 MONETIZATION_FILE = os.path.join(os.path.dirname(__file__), 'monetization.json')
 STATS_FILE = os.path.join(os.path.dirname(__file__), 'stats.json')
+REFERRALS_FILE = os.path.join(os.path.dirname(__file__), 'referrals.json')
+PACK_SECRETO_PDF_PATH = os.path.join(os.path.dirname(__file__), 'Pack_Secreto_Admision_Remota_2026.pdf')
+if not os.path.exists(PACK_SECRETO_PDF_PATH):
+    desktop_candidate = os.path.join(os.path.expanduser('~'), 'Desktop', 'Pack_Secreto_Admision_Remota_2026.pdf')
+    if os.path.exists(desktop_candidate):
+        PACK_SECRETO_PDF_PATH = desktop_candidate
 
 # ========================================================
 # Servidor HTTP de Monitoreo / Keep-Alive (Cloud 24/7)
@@ -240,6 +246,130 @@ def increment_cv_count(user_id):
         pass
 
 
+# ========================================================
+# Motor de Referidos Virales (Deep Linking y Gamificación)
+# ========================================================
+def load_referrals():
+    if os.path.exists(REFERRALS_FILE):
+        try:
+            with open(REFERRALS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error leyendo referrals.json: {e}")
+    return {"referrers": {}, "referred_users": {}}
+
+
+def save_referrals(data):
+    try:
+        with open(REFERRALS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"Error guardando referrals.json: {e}")
+
+
+def get_user_referral_stats(user_id: int):
+    data = load_referrals()
+    uid_str = str(user_id)
+    return data.get("referrers", {}).get(uid_str, {
+        "count": 0,
+        "invited": [],
+        "unlocked": False
+    })
+
+
+async def process_referral(new_user_id: int, referrer_param: str, context: ContextTypes.DEFAULT_TYPE):
+    """Procesa el registro por enlace de referido (/start ref_USERID)."""
+    if not referrer_param:
+        return
+
+    referrer_id_str = referrer_param.replace("ref_", "").replace("ref", "").strip()
+    if not referrer_id_str.isdigit():
+        return
+
+    referrer_id = int(referrer_id_str)
+    new_user_str = str(new_user_id)
+
+    # Evitar que un usuario se autorefiera
+    if new_user_id == referrer_id:
+        return
+
+    data = load_referrals()
+    if "referrers" not in data:
+        data["referrers"] = {}
+    if "referred_users" not in data:
+        data["referred_users"] = {}
+
+    # Si ya fue referido antes por alguien, ignorar para evitar doble conteo
+    if new_user_str in data["referred_users"]:
+        return
+
+    data["referred_users"][new_user_str] = referrer_id_str
+
+    if referrer_id_str not in data["referrers"]:
+        data["referrers"][referrer_id_str] = {
+            "count": 0,
+            "invited": [],
+            "unlocked": False
+        }
+
+    ref_record = data["referrers"][referrer_id_str]
+    if new_user_str not in ref_record.get("invited", []):
+        ref_record["invited"].append(new_user_str)
+        ref_record["count"] = len(ref_record["invited"])
+
+    unlocked_now = False
+    if ref_record["count"] >= 2 and not ref_record.get("unlocked", False):
+        ref_record["unlocked"] = True
+        unlocked_now = True
+
+    save_referrals(data)
+    logger.info(f"Referido procesado: nuevo usuario {new_user_id} invitado por {referrer_id} (Total: {ref_record['count']})")
+
+    # Notificación instantánea al referidor
+    try:
+        count = ref_record["count"]
+        if unlocked_now:
+            congrats_text = (
+                "🏆 **¡FELICITACIONES! HAS DESBLOQUEADO EL PACK SECRETO** 🏆\n\n"
+                "Acabas de completar tus **2 amigos invitados** con éxito.\n\n"
+                "Aquí tienes tu **Pack Secreto: Claves de Admisión y Entrevista Remota 2026** "
+                "(Rúbricas oficiales de Outlier AI y DataAnnotation, Cover Letter en inglés y Método STAR para entrevistas)."
+            )
+            await context.bot.send_message(
+                chat_id=referrer_id,
+                text=congrats_text,
+                parse_mode='Markdown'
+            )
+            if os.path.exists(PACK_SECRETO_PDF_PATH):
+                with open(PACK_SECRETO_PDF_PATH, 'rb') as f:
+                    await context.bot.send_document(
+                        chat_id=referrer_id,
+                        document=f,
+                        filename="Pack_Secreto_Admision_Remota_2026.pdf",
+                        caption="🎁 **Material Exclusivo Desbloqueado:** Pack Secreto de Admisión Remota 2026.",
+                        parse_mode='Markdown'
+                    )
+        elif count == 1:
+            push_msg = (
+                "🔔 **¡Un amigo se acaba de unir con tu enlace de recomendación!**\n\n"
+                "📈 **Progreso:** `1 de 2 amigos invitados` (50% completado).\n"
+                "⚡ **Solo te falta 1 amigo más** para que el bot te entregue automáticamente el "
+                "**Pack Secreto de Admisión de Outlier AI + Cover Letter en Inglés**.\n\n"
+                "Toca el botón para seguir compartiendo:"
+            )
+            kb = InlineKeyboardMarkup([[
+                InlineKeyboardButton("📲 Compartir mi Enlace", callback_data="btn_referrals_menu")
+            ]])
+            await context.bot.send_message(
+                chat_id=referrer_id,
+                text=push_msg,
+                parse_mode='Markdown',
+                reply_markup=kb
+            )
+    except Exception as ne:
+        logger.warning(f"No se pudo enviar notificación de referido a {referrer_id}: {ne}")
+
+
 def load_stats():
     default_stats = {
         'channel_clicks': 0,
@@ -354,16 +484,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     save_subscriber(user)
     context.user_data.clear()
 
-    # Soporte para deep-linking: /start cv
-    if context.args and context.args[0].lower().startswith('cv'):
-        msg = update.message or (update.callback_query.message if update.callback_query else None)
-        if msg:
-            return await start_cv_step_1(msg, context)
+    # Soporte para deep-linking: /start cv o /start ref_USERID
+    if context.args:
+        arg = context.args[0].lower()
+        if arg.startswith('ref'):
+            await process_referral(user.id, arg, context)
+        elif arg.startswith('cv'):
+            msg = update.message or (update.callback_query.message if update.callback_query else None)
+            if msg:
+                return await start_cv_step_1(msg, context)
 
     first_name = user.first_name or "colega"
 
     keyboard = [
         [InlineKeyboardButton("📄 Crear mi CV ATS Profesional (1 Clic)", callback_data="btn_start_cv")],
+        [InlineKeyboardButton("🎁 Desbloquear Pack Secreto (2 Referidos)", callback_data="btn_referrals_menu")],
         [InlineKeyboardButton("📥 Descargar Kit Maestro en PDF", callback_data="btn_download_kit")],
         [InlineKeyboardButton("📢 Convocatorias en Dólares (Canal)", callback_data="btn_channel_link")],
         [InlineKeyboardButton("💡 Guía de Entrevistas y Salarios", callback_data="btn_guide_interviews")],
@@ -524,6 +659,107 @@ async def guide_interviews_callback(update: Update, context: ContextTypes.DEFAUL
         await msg.edit_text(guide_text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
     else:
         await msg.reply_text(guide_text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+# ========================================================
+# Callbacks del Motor de Referidos y Pack Secreto
+# ========================================================
+async def referrals_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Muestra el panel del Pack Secreto y motor de referidos."""
+    query = update.callback_query
+    user = update.effective_user
+    if query:
+        await query.answer()
+
+    stats = get_user_referral_stats(user.id)
+    count = stats.get("count", 0)
+    unlocked = stats.get("unlocked", False)
+
+    bot_obj = await context.bot.get_me()
+    bot_username = bot_obj.username or "empleosremotos_oficial_bot"
+    ref_link = f"https://t.me/{bot_username}?start=ref_{user.id}"
+
+    # Textos de recomendación para compartir con 1 clic
+    share_text = (
+        "¡Hola! Te comparto este bot que arma CVs ATS estilo Harvard en 1 minuto "
+        "y tiene vacantes reales en dólares para Outlier AI y trabajo remoto. Te lo recomiendo:"
+    )
+    encoded_share = requests.utils.quote(share_text)
+    tg_share_url = f"https://t.me/share/url?url={ref_link}&text={encoded_share}"
+    wa_share_url = f"https://api.whatsapp.com/send?text={encoded_share}%20{ref_link}"
+
+    lines = [
+        "🎁 **PACK SECRETO: CLAVES DE ADMISIÓN Y ENTREVISTA REMOTA 2026**\n",
+        "Este pack táctico de 3 módulos contiene el material confidencial para superar filtros de contratación:\n",
+        "• **Módulo 1:** Rúbrica oficial de Outlier y DataAnnotation (cómo calificar modelos, detectar alucinaciones y evitar ser descalificado).",
+        "• **Módulo 2:** Plantilla maestra de Cover Letter (Carta de Presentación en inglés) con métricas de impacto reales.",
+        "• **Módulo 3:** El Método STAR para entrevistas en video (HireVue / Willo) con guiones de respuesta listos.\n",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        f"📊 **Tu Progreso:** `{count}` de `2` amigos invitados",
+        f"🔗 **Tu Enlace Personal Único:**\n`{ref_link}`\n",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    ]
+
+    keyboard = []
+    if unlocked or count >= 2 or is_admin(user.id):
+        lines.append("🎉 **¡RECURSO DISPONIBLE!** Toca el botón de abajo para descargarlo en PDF:")
+        keyboard.append([InlineKeyboardButton("📥 Descargar mi Pack Secreto en PDF", callback_data="btn_download_secret_pack")])
+    else:
+        faltan = max(0, 2 - count)
+        lines.append(f"💡 *Comparte tu enlace con {faltan} amigo(s) más. En cuanto entren al bot, el documento se te enviará automáticamente.*")
+        keyboard.append([InlineKeyboardButton("📲 Compartir en Telegram (1 Clic)", url=tg_share_url)])
+        keyboard.append([InlineKeyboardButton("💬 Compartir en WhatsApp", url=wa_share_url)])
+
+    keyboard.append([InlineKeyboardButton("📄 Crear mi CV ATS Profesional", callback_data="btn_start_cv")])
+    keyboard.append([InlineKeyboardButton("⬅️ Volver al Menú Principal", callback_data="btn_back_menu")])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    if query:
+        await safe_edit_text(query, "\n".join(lines), parse_mode='Markdown', reply_markup=reply_markup)
+    else:
+        await update.message.reply_text("\n".join(lines), parse_mode='Markdown', reply_markup=reply_markup)
+
+
+async def download_secret_pack_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Permite descargar el Pack Secreto si el usuario ya tiene 2 referidos o es admin."""
+    query = update.callback_query
+    user = update.effective_user
+    if query:
+        await query.answer("Preparando tu Pack Secreto...")
+
+    stats = get_user_referral_stats(user.id)
+    if not stats.get("unlocked", False) and stats.get("count", 0) < 2 and not is_admin(user.id):
+        if query:
+            await query.answer("⚠️ Debes invitar a 2 amigos para desbloquear este pack.", show_alert=True)
+        return
+
+    pack_path = PACK_SECRETO_PDF_PATH
+    if not os.path.exists(pack_path):
+        desktop_cand = os.path.join(os.path.expanduser('~'), 'Desktop', 'Pack_Secreto_Admision_Remota_2026.pdf')
+        if os.path.exists(desktop_cand):
+            pack_path = desktop_cand
+
+    if not os.path.exists(pack_path):
+        if query:
+            await safe_edit_text(query, "⚠️ El documento se está actualizando. Intenta de nuevo en unos minutos.")
+        return
+
+    caption = (
+        "🎁 **Pack Secreto: Claves de Admisión y Entrevista Remota 2026**\n\n"
+        "• Rúbricas Oficiales Outlier & DataAnnotation (RLHF)\n"
+        "• Plantilla Cover Letter en Inglés con Métricas\n"
+        "• Guión Método STAR para Entrevistas en Video\n\n"
+        "🏛️ *Material exclusivo desbloqueado por tu recomendación.*"
+    )
+
+    with open(pack_path, 'rb') as f:
+        await context.bot.send_document(
+            chat_id=update.effective_chat.id,
+            document=f,
+            filename="Pack_Secreto_Admision_Remota_2026.pdf",
+            caption=caption,
+            parse_mode='Markdown'
+        )
 
 
 # ========================================================
@@ -784,6 +1020,7 @@ async def generate_and_send_final_cv(message, user, context) -> int:
         )
 
         keyboard = [
+            [InlineKeyboardButton("🎁 Desbloquear Respuestas Examen Outlier AI (Pack Secreto)", callback_data="btn_referrals_menu")],
             [InlineKeyboardButton("📄 Crear otro CV ATS (1 Clic)", callback_data="btn_start_cv")],
             [InlineKeyboardButton("📥 Descargar Kit Maestro en PDF", callback_data="btn_download_kit")],
             [InlineKeyboardButton("📢 Convocatorias en Dólares (Canal)", callback_data="btn_channel_link")],
@@ -2304,10 +2541,16 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("👑 Menú Panel Admin", callback_data="adm_home")]
     ]
 
+    ref_data = load_referrals()
+    total_refs = len(ref_data.get("referred_users", {}))
+    unlocked_packs = sum(1 for r in ref_data.get("referrers", {}).values() if r.get("unlocked", False) or r.get("count", 0) >= 2)
+
     msg = (
         "📊 **Resumen Rápido del Bot ATS**\n\n"
         f"• **Suscriptores registrados:** `{total_users}`\n"
         f"• **CVs generados:** `{total_cvs}`\n"
+        f"• **Referidos registrados:** `{total_refs}`\n"
+        f"• **Packs Secretos desbloqueados:** `{unlocked_packs}`\n"
         f"• **Clics en canal:** `{stats_data.get('channel_clicks', 0)}`\n"
         f"• **Publicaciones en canal:** `{stats_data.get('total_channel_posts', 0)}`\n"
         f"• **Difusiones masivas:** `{stats_data.get('total_broadcasts', 0)}`"
@@ -2407,6 +2650,7 @@ def main():
 
     # 3. Handlers de Usuario General
     app.add_handler(CommandHandler('start', start))
+    app.add_handler(CommandHandler(['pack', 'referidos'], referrals_menu_callback))
     app.add_handler(CommandHandler('kit', download_kit_callback))
     app.add_handler(CommandHandler('guia', guide_interviews_callback))
     app.add_handler(CommandHandler('stats', stats_command))
@@ -2414,6 +2658,8 @@ def main():
     app.add_handler(CommandHandler('cancel', cancel))
 
     app.add_handler(CallbackQueryHandler(start, pattern="^btn_back_menu$"))
+    app.add_handler(CallbackQueryHandler(referrals_menu_callback, pattern="^btn_referrals_menu$"))
+    app.add_handler(CallbackQueryHandler(download_secret_pack_callback, pattern="^btn_download_secret_pack$"))
     app.add_handler(CallbackQueryHandler(channel_link_tracker_callback, pattern="^btn_channel_link$"))
     app.add_handler(CallbackQueryHandler(why_ats_callback, pattern="^btn_why_ats$"))
     app.add_handler(CallbackQueryHandler(download_kit_callback, pattern="^btn_download_kit$"))

@@ -33,7 +33,9 @@ from telegram import (
     Update,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
-    ReplyKeyboardRemove
+    ReplyKeyboardRemove,
+    ReplyKeyboardMarkup,
+    KeyboardButton
 )
 from telegram.error import TelegramError, BadRequest
 from telegram.ext import (
@@ -93,6 +95,32 @@ if not os.path.exists(PACK_SECRETO_PDF_PATH):
     if os.path.exists(desktop_candidate):
         PACK_SECRETO_PDF_PATH = desktop_candidate
 
+# Banners Gráficos de Presentación Visual
+WELCOME_BANNER_PATH = os.path.join(os.path.dirname(__file__), 'banner_welcome.jpg')
+PACK_SECRETO_BANNER_PATH = os.path.join(os.path.dirname(__file__), 'banner_pack_secreto.jpg')
+KIT_MAESTRO_BANNER_PATH = os.path.join(os.path.dirname(__file__), 'banner_kit_maestro.jpg')
+
+# Constantes de Botones del Teclado Inferior Persistente (Dock Ergonómico)
+BTN_BOTTOM_CV = "📄 Crear mi CV ATS"
+BTN_BOTTOM_PACK = "🎁 Refer & Earn (Pack)"
+BTN_BOTTOM_CHANNEL = "📢 Convocatorias USD"
+BTN_BOTTOM_KIT = "📥 Kit Maestro (PDF)"
+BTN_BOTTOM_GUIDE = "💡 Guía Entrevistas"
+BTN_BOTTOM_ATS = "❓ Auditoría ATS"
+BTN_BOTTOM_ADMIN = "👑 Panel de Administrador"
+
+def get_main_reply_keyboard(user_id=None):
+    """Genera el teclado táctil inferior persistente adaptado a ergonomía móvil."""
+    buttons = [
+        [KeyboardButton(BTN_BOTTOM_CV), KeyboardButton(BTN_BOTTOM_PACK)],
+        [KeyboardButton(BTN_BOTTOM_CHANNEL), KeyboardButton(BTN_BOTTOM_KIT)],
+        [KeyboardButton(BTN_BOTTOM_GUIDE), KeyboardButton(BTN_BOTTOM_ATS)]
+    ]
+    if user_id and is_admin(user_id):
+        buttons.append([KeyboardButton(BTN_BOTTOM_ADMIN)])
+    return ReplyKeyboardMarkup(buttons, resize_keyboard=True, is_persistent=True)
+
+
 # ========================================================
 # Servidor HTTP de Monitoreo / Keep-Alive (Cloud 24/7)
 # ========================================================
@@ -128,16 +156,25 @@ def start_health_server():
 # ========================================================
 
 async def safe_edit_text(query, text: str, reply_markup=None, parse_mode='Markdown'):
-    """Edita el mensaje con degradacion segura a texto plano si falla el parser de Markdown."""
+    """Edita el mensaje (o su caption si contiene foto) con degradación segura."""
+    is_photo = bool(query.message.photo)
     try:
-        return await query.message.edit_text(text, parse_mode=parse_mode, reply_markup=reply_markup)
+        if is_photo:
+            return await query.message.edit_caption(caption=text, parse_mode=parse_mode, reply_markup=reply_markup)
+        else:
+            return await query.message.edit_text(text, parse_mode=parse_mode, reply_markup=reply_markup)
     except BadRequest as e:
         err_str = str(e)
         if "Can't parse entities" in err_str or "entity" in err_str.lower():
             logger.warning(f"Telegram Markdown parse error, degradando a texto plano: {e}")
-            return await query.message.edit_text(text, parse_mode=None, reply_markup=reply_markup)
+            if is_photo:
+                return await query.message.edit_caption(caption=text, parse_mode=None, reply_markup=reply_markup)
+            else:
+                return await query.message.edit_text(text, parse_mode=None, reply_markup=reply_markup)
         elif "Message is not modified" in err_str:
             return query.message
+        elif "There is no text" in err_str or "message to edit" in err_str:
+            return await query.message.reply_text(text, parse_mode=parse_mode, reply_markup=reply_markup)
         raise
 
 async def safe_reply_text(message, text: str, reply_markup=None, parse_mode='Markdown'):
@@ -520,10 +557,31 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         f"⚡ **Flujo Interactivo 100% Táctil:** responde en 6 pasos rápidos con los botones de abajo y tu CV estará listo en 60 segundos."
     )
 
+    persistent_keyboard = get_main_reply_keyboard(user.id)
+
     if update.callback_query:
-        await update.callback_query.message.edit_text(welcome_text, parse_mode='Markdown', reply_markup=reply_markup)
+        await safe_edit_text(update.callback_query, welcome_text, parse_mode='Markdown', reply_markup=reply_markup)
     else:
-        await update.message.reply_text(welcome_text, parse_mode='Markdown', reply_markup=reply_markup)
+        if os.path.exists(WELCOME_BANNER_PATH):
+            with open(WELCOME_BANNER_PATH, 'rb') as photo_file:
+                await update.message.reply_photo(
+                    photo=photo_file,
+                    caption=welcome_text,
+                    parse_mode='Markdown',
+                    reply_markup=reply_markup
+                )
+            await update.message.reply_text(
+                "⌨️ *Menú Táctil Inferior anclado:*",
+                parse_mode='Markdown',
+                reply_markup=persistent_keyboard
+            )
+        else:
+            await update.message.reply_text(welcome_text, parse_mode='Markdown', reply_markup=reply_markup)
+            await update.message.reply_text(
+                "⌨️ *Menú Táctil Inferior anclado:*",
+                parse_mode='Markdown',
+                reply_markup=persistent_keyboard
+            )
 
     return ConversationHandler.END
 
@@ -626,6 +684,17 @@ async def download_kit_callback(update: Update, context: ContextTypes.DEFAULT_TY
         "▸ **Negociación Salarial:** Métricas y preparación de entrevistas en inglés.\n\n"
         "📥 *Documento verificado y listo para lectura.*"
     )
+
+    if not query and os.path.exists(KIT_MAESTRO_BANNER_PATH):
+        try:
+            with open(KIT_MAESTRO_BANNER_PATH, 'rb') as photo:
+                await msg.reply_photo(
+                    photo=photo,
+                    caption="📘 **PRESENTACIÓN: KIT MAESTRO DE EMPLEO REMOTO 2026**\n*Descarga tu copia oficial en PDF a continuación:*",
+                    parse_mode='Markdown'
+                )
+        except Exception as e:
+            logger.warning(f"No se pudo enviar banner kit: {e}")
 
     with open(pdf_path, 'rb') as doc_file:
         await context.bot.send_document(
@@ -755,7 +824,16 @@ async def referrals_menu_callback(update: Update, context: ContextTypes.DEFAULT_
     if query:
         await safe_edit_text(query, "\n".join(lines), parse_mode='Markdown', reply_markup=reply_markup)
     else:
-        await update.message.reply_text("\n".join(lines), parse_mode='Markdown', reply_markup=reply_markup)
+        if os.path.exists(PACK_SECRETO_BANNER_PATH):
+            with open(PACK_SECRETO_BANNER_PATH, 'rb') as photo:
+                await update.message.reply_photo(
+                    photo=photo,
+                    caption="\n".join(lines),
+                    parse_mode='Markdown',
+                    reply_markup=reply_markup
+                )
+        else:
+            await update.message.reply_text("\n".join(lines), parse_mode='Markdown', reply_markup=reply_markup)
 
 
 async def download_secret_pack_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -851,6 +929,31 @@ async def start_cv_step_1(message, context) -> int:
 async def receive_name_step(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Recibe nombre/correo y muestra botones para elegir País."""
     raw_text = update.message.text.strip()
+
+    # Interceptar si el usuario pulsó un botón del teclado inferior permanente
+    if raw_text in [BTN_BOTTOM_CV, BTN_BOTTOM_PACK, BTN_BOTTOM_CHANNEL, BTN_BOTTOM_KIT, BTN_BOTTOM_GUIDE, BTN_BOTTOM_ATS, BTN_BOTTOM_ADMIN]:
+        context.user_data.clear()
+        if raw_text == BTN_BOTTOM_CV:
+            return await start_cv_step_1(update.message, context)
+        elif raw_text == BTN_BOTTOM_PACK:
+            await referrals_menu_callback(update, context)
+            return ConversationHandler.END
+        elif raw_text == BTN_BOTTOM_CHANNEL:
+            await channel_link_tracker_callback(update, context)
+            return ConversationHandler.END
+        elif raw_text == BTN_BOTTOM_KIT:
+            await download_kit_callback(update, context)
+            return ConversationHandler.END
+        elif raw_text == BTN_BOTTOM_GUIDE:
+            await guide_interviews_callback(update, context)
+            return ConversationHandler.END
+        elif raw_text == BTN_BOTTOM_ATS:
+            await why_ats_callback(update, context)
+            return ConversationHandler.END
+        elif raw_text == BTN_BOTTOM_ADMIN:
+            await admin_panel_command(update, context)
+            return ConversationHandler.END
+
     parsed = parse_name_and_email(raw_text)
     context.user_data['name'] = parsed['name']
     context.user_data['email'] = parsed['email']
@@ -2766,6 +2869,15 @@ def main():
     app.add_handler(CallbackQueryHandler(why_ats_callback, pattern="^btn_why_ats$"))
     app.add_handler(CallbackQueryHandler(download_kit_callback, pattern="^btn_download_kit$"))
     app.add_handler(CallbackQueryHandler(guide_interviews_callback, pattern="^btn_guide_interviews$"))
+
+    # 4. Handlers del Teclado Inferior Persistente (Dock Ergonómico)
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_CV)}$"), start_cv_entry))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_PACK)}$"), referrals_menu_callback))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_CHANNEL)}$"), channel_link_tracker_callback))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_KIT)}$"), download_kit_callback))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_GUIDE)}$"), guide_interviews_callback))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_ATS)}$"), why_ats_callback))
+    app.add_handler(MessageHandler(filters.Regex(f"^{re.escape(BTN_BOTTOM_ADMIN)}$"), admin_panel_command))
 
     # Handler del CV
     app.add_handler(cv_conv_handler)

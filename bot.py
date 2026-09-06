@@ -78,13 +78,16 @@ ADMIN_ID = os.getenv('ADMIN_ID', '8295054958')
 SPONSOR_CHANNEL_URL = os.getenv('SPONSOR_CHANNEL_URL', 'https://t.me/empleosremotos_oficial')
 CHANNEL_USERNAME = '@empleosremotos_oficial'
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Kit Maestro PDF Path
-KIT_MAESTRO_PDF_PATH = os.path.join(os.path.dirname(__file__), 'Kit_Maestro_Empleo_Remoto_2026.pdf')
+KIT_MAESTRO_PDF_PATH = os.path.join(BASE_DIR, 'Kit_Maestro_Empleo_Remoto_2026.pdf')
 if not os.path.exists(KIT_MAESTRO_PDF_PATH):
     desktop_candidate = os.path.join(os.path.expanduser('~'), 'Desktop', 'Kit_Maestro_Empleo_Remoto_2026.pdf')
     if os.path.exists(desktop_candidate):
         KIT_MAESTRO_PDF_PATH = desktop_candidate
 
+PACK_SECRETO_PDF_PATH = os.path.join(os.path.dirname(__file__), 'Pack_Secreto_Admision_Remota_2026.pdf')
 if not os.path.exists(PACK_SECRETO_PDF_PATH):
     desktop_candidate = os.path.join(os.path.expanduser('~'), 'Desktop', 'Pack_Secreto_Admision_Remota_2026.pdf')
     if os.path.exists(desktop_candidate):
